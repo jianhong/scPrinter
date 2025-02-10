@@ -35,6 +35,23 @@ Genome
     genome.GRCm38
     genome.hg38
     genome.mm10
+    genome.mm39
+
+FigR datasets
+~~~~~~~~~~~~~
+.. autosummary::
+    :toctree: _autosummary
+
+    datasets.FigR_motifs_mouse
+    datasets.FigR_motifs_human
+    datasets.FigR_motifs_bagging_mouse
+    datasets.FigR_motifs_bagging_human
+    datasets.FigR_motifs_mouse_meme
+    datasets.FigR_motifs_human_meme
+    datasets.hg19TSSRanges
+    datasets.hg38TSSRanges
+    datasets.mm10TSSRanges
+
 
 Tutorial Datasets
 ~~~~~~~~~~~~~~~~~

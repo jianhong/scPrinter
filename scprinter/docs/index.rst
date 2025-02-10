@@ -25,7 +25,7 @@ How to cite
 -----------
 The original multi-scale footprinting algorithm is described in the following paper:
 
-- Hu, Yan, et al. "Single-cell multi-scale footprinting reveals the modular organization of DNA regulatory elements." bioRxiv (2023): 2023-03.
+- "Multiscale footprints reveal the organization of cis-regulatory elements." Nature, s41586-024-08443-4, 2024.
 
 .. code-block::
 

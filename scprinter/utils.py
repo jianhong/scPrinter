@@ -138,6 +138,33 @@ def zscore2pval_torch(footprint):
     return pval_log
 
 
+def get_protein_sequence(tf_name, species):
+    from io import StringIO
+
+    import requests
+    from Bio import SeqIO
+
+    # UniProt search API
+    url = f"https://rest.uniprot.org/uniprotkb/search?query=gene:{tf_name}+AND+organism_name:{species}&format=fasta"
+
+    # Send the request to UniProt
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        # Check if there are results
+        if not response.text.strip():
+            print(f"No sequences found for TF: {tf_name}")
+    else:
+        print(f"Failed to fetch data. Status code: {response.status_code}")
+
+    fasta_data = response.text
+    for record in SeqIO.parse(StringIO(fasta_data), "fasta"):
+        print("Using the first sequence found in the database")
+        print(str(record.id))
+        print("Sequence:", str(record.seq))
+        return str(record.seq)
+
+
 def get_stats_for_genome(fasta_file):
     """
     This is a function that reads a fasta file and return a dictionary of chromosome names and their lengths

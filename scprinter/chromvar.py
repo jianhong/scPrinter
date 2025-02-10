@@ -102,9 +102,6 @@ def sample_bg_peaks(
     return knn_idx
 
 
-sample_bg_peaks2 = sample_bg_peaks
-
-
 def create_bins_and_sample_background(trans_norm_mat, bs, w, niterations):
     """
     Translated from the chromVAR R package.

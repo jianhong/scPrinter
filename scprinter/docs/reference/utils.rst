@@ -37,6 +37,7 @@ Genome / DNA sequence related functions
     utils.GC_content
     utils.get_peak_bias
     utils.get_stats_for_genome
+    utils.get_genome_bg
 
 Footprinting post processing functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,3 +46,4 @@ Footprinting post processing functions
     :toctree: _autosummary
 
     utils.zscore2pval
+    utils.zscore2pval_torch

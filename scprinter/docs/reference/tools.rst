@@ -16,7 +16,9 @@ Footprinting
    :toctree: _autosummary
 
    tl.get_footprint_score
+   tl.export_footprint_bed3
    tl.footprint_generator
+
 
 
 Binding Score Calculation
@@ -70,5 +72,6 @@ seq2PRINT: step 4 (de novo motif discovery)
    :toctree: _autosummary
 
    tl.seq_denovo_seq2print
+   tl.seq_denovo_callhits
    tl.delta_effects_seq2print
    tl.modisco_report

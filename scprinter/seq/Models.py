@@ -651,6 +651,11 @@ class seq2PRINT(nn.Module):
                 p.requires_grad = True
             total_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
             print("total trainable params", total_params)
+            for group in optimizer.param_groups:
+                lr = group["lr"]
+                print("old lr", lr)
+                group["lr"] = min(1e-3, group["lr"] * 10)
+                print("new lr", group["lr"])
 
         for epoch in range(max_epochs):
             moving_avg_loss = 0
@@ -667,9 +672,12 @@ class seq2PRINT(nn.Module):
                 dynamic_ncols=True,
             )
 
-            if epoch > coverage_warming and coverage_warming > 0:
+            if (epoch == coverage_warming) and coverage_warming > 0:
                 for name, param in self.named_parameters():
                     param.requires_grad = requires_grads[name]
+                for group in optimizer.param_groups:
+                    print("revert lr", lr)
+                    group["lr"] = lr
                 # for p in self.profile_cnn_model.adjustment_count.parameters():
                 #     p.requires_grad = False
                 # for p in self.profile_cnn_model.adjustment_footprint.parameters():
@@ -755,9 +763,9 @@ class seq2PRINT(nn.Module):
                     optimizer.zero_grad()
                     # if scaler._scale < min_scale:
                     #     scaler._scale = torch.tensor(min_scale).to(scaler._scale)
-
-                    if ema:
+                    if (epoch >= coverage_warming) and ema:
                         ema.update()
+
                     if scheduler:
                         scheduler.step()
 
@@ -796,7 +804,7 @@ class seq2PRINT(nn.Module):
             print("Across peak pearson fp", across_pearson_fp)
             print("Across peak pearson cov", across_pearson_cov)
 
-            if ema:
+            if (epoch >= coverage_warming) and ema:
                 ema.eval()
                 ema.ema_model.eval()
                 val_loss_ema, profile_pearson, across_pearson_fp, across_pearson_cov = (
@@ -804,7 +812,7 @@ class seq2PRINT(nn.Module):
                         ema.ema_model, validation_data, validation_size, dispmodel, modes
                     )
                 )
-                if (val_loss_ema > val_loss) | (epoch < coverage_warming):
+                if val_loss_ema > val_loss:
                     # ema not converged yet:
                     early_stopping_counter = 0
 
@@ -845,13 +853,18 @@ class seq2PRINT(nn.Module):
                 torch.save(self, savename + ".model.pt")
                 if ema:
                     torch.save(ema, savename + ".ema.pt")
+                    torch.save(ema, savename + ".ema.pt")
                     torch.save(ema.ema_model, savename + ".ema_model.pt")
             else:
                 early_stopping_counter += 1
             if early_stopping:
                 if early_stopping_counter >= early_stopping:
-                    print("Early stopping")
-                    break
+                    if epoch < coverage_warming:
+                        print("Early stopping on coverage warming")
+                        coverage_warming = epoch
+                    else:
+                        print("Early stopping")
+                        break
 
             if use_wandb:
                 wandb.log(

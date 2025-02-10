@@ -53,6 +53,7 @@ def fast_gene_peak_corr(
     pval_cut=None,
     pos_only=True,
     multimapping=False,
+    recal_coverage=True,
 ):
     """
     Calculate the spearman correlation between ATAC-seq peaks and gene expression with chromvar-style significance testing
@@ -83,7 +84,8 @@ def fast_gene_peak_corr(
         Whether to only consider positive correlation
     multimapping: bool
         Whether to keep all peak-gene pair or keep only the peak-gene pair with the highest correlation
-
+    recal_coverage: bool
+        Whether to re-calculate coverage for peaks and genes based on the provided anndata objects. If False, it would assume there are "coverage" cols in atac_adata.var and rna_adata.var and would use that to match background peaks and genes
     Returns
     -------
     pd.DataFrame
@@ -94,7 +96,9 @@ def fast_gene_peak_corr(
     shared_barcode = np.intersect1d(atac_adata.obs_names, rna_adata.obs_names)
     atac_adata = atac_adata[shared_barcode]
     rna_adata = rna_adata[shared_barcode]
-    valid_peaks = atac_adata.X.sum(axis=0) > 0
+    # valid_peaks = np.array((atac_adata.X != 0).sum(axis=0) != 0).reshape((-1))
+    valid_peaks = np.unique(atac_adata.X.nonzero()[1])
+    print("Found", len(valid_peaks), "Valid Peaks")
     atac_adata = atac_adata[:, valid_peaks].copy()
     get_peak_bias(atac_adata, genome)
     if normalize_atac:
@@ -102,7 +106,8 @@ def fast_gene_peak_corr(
     else:
         atac_mat = atac_adata.X
 
-    valid_gene = rna_adata.X.sum(axis=0) > 0
+    valid_gene = np.unique(rna_adata.X.nonzero()[1])
+    print("Found", len(valid_gene), "Valid Genes")
     rna_adata = rna_adata[:, valid_gene].copy()
     if not gene_list:
         gene_list = rna_adata.var_names
@@ -138,9 +143,9 @@ def fast_gene_peak_corr(
     num_bg_pairs = 100000
     bg_genes_id = np.random.choice(len(gene_list), num_bg_pairs, replace=True)
     bg_peaks_id = np.random.choice(len(atac_adata.var_names), num_bg_pairs, replace=True)
-
-    atac_adata.var["coverage"] = np.array(atac_mat.mean(axis=0)).reshape((-1))
-    rna_adata.var["coverage"] = np.array(rna_adata.X.mean(axis=0)).reshape((-1))
+    if recal_coverage:
+        atac_adata.var["coverage"] = np.array(atac_mat.mean(axis=0)).reshape((-1))
+        rna_adata.var["coverage"] = np.array(rna_adata.X.mean(axis=0)).reshape((-1))
 
     # Background feature calculation
     bg_features = np.stack(

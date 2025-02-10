@@ -144,9 +144,11 @@ def main():
     if args.ids is not None:
         ids = args.ids
         ids = ids.split(",")
-        ids = [int(i) for i in ids]
+        ids = [i.split("-") for i in ids]
+        print(ids[:5], ids[-5:])
+        ids = [[int(j) for j in i] for i in ids]
     else:
-        ids = [None]
+        ids = [[None]]
     genome = args.genome
     if genome == "hg38":
         genome = scp.genome.hg38
@@ -168,7 +170,7 @@ def main():
                 + models
                 + [
                     "--ids",
-                    ",".join(map(str, ids_batch[i])),
+                    ",".join(["-".join([str(yy) for yy in xx]) for xx in ids_batch[i]]),
                     "--genome",
                     args.genome,
                     "--peaks",
@@ -310,7 +312,7 @@ def main():
                 bar.set_description(f"working on {name} with model {model_id}")
                 # Get model outputs for all sequences
                 if name is not None:
-                    md = model.collapse(int(name)).to("cuda")
+                    md = model.collapse(name).to("cuda")
                 else:
                     md = model.to("cuda")
                 # print (md)

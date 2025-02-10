@@ -49,7 +49,7 @@ def read_pfms(motif, trim_threshold=0.3, prefix=""):
             mtx = mtx / np.sum(mtx, axis=1)[:, None]
             dict1[prefix + name] = mtx.T
     elif isinstance(motif, dict):
-        dict1 = motif
+        dict1 = {prefix + name: mtx for name, mtx in motif.items()}
     else:
         if ".h5" in motif:
             # modisco format
@@ -119,7 +119,7 @@ def tomtom_motif_motif_matrix(
         all_names_2 += list(m.keys())
         all_pfms_2 += list(m.values())
 
-    p, scores, offsets, overlaps, strands = tomtom(all_pfms_1, all_pfms_2)
+    p, scores, offsets, overlaps, strands = tomtom(all_pfms_1, all_pfms_2, n_cache=1000)
     df = pd.DataFrame(
         {
             "Query_ID": np.repeat(list(all_names_1), len(all_names_2)),
@@ -611,7 +611,7 @@ class Motifs:
     split_tf: bool, optional
         Whether to split the TFs by comma (for cistarget motif collection), by default True
     mode: Literal['motifmatchr', 'moods'], optional
-        The mode of the motif matching, by default 'motifmatch
+        The mode of the motif matching, by default 'motifmatchr'
     """
 
     def __init__(
@@ -848,6 +848,11 @@ class Motifs:
         -------
         list or numpy.ndarray
             The output of the motif scanning process. The format depends on the values of the `clean`, `concat`, and `count` parameters.
+            But roughly the output by columns are: [peak_chrom,peak_start,peak_end,peak_index,tf_name,
+                        scan_score,
+                        matching_strand,
+                        matching_relative start (within peak),
+                        matching_relative_end (within peak),]
         """
         global scanner
         scanner = self.scanner
@@ -861,6 +866,8 @@ class Motifs:
         peaks_iter = np.array(peaks_iter)
         if verbose:
             bar = trange(len(peaks_iter) * 2)
+        else:
+            bar = None
 
         pool = ProcessPoolExecutor(max_workers=self.n_jobs)
         p_list = []

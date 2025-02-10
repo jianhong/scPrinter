@@ -24,6 +24,7 @@ Cell x Peak matrix preprocessing
 .. autosummary::
     :toctree: _autosummary
 
+    pp.call_peaks
     pp.make_peak_matrix
     pp.make_gene_matrix
     pp.mean_norm_counts

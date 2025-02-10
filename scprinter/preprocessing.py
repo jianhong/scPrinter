@@ -2,17 +2,12 @@ from __future__ import annotations
 
 import multiprocessing
 import os.path
-import subprocess
 import time
 import uuid
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Literal
 
-import anndata
 import numpy as np
 import pyBigWig
-import snapatac2 as snap
 from anndata import AnnData
 from scipy.sparse import coo_matrix, csc_matrix, csr_matrix, hstack, issparse, vstack
 from tqdm.auto import tqdm, trange
@@ -30,7 +25,6 @@ def import_data(
     genome,
     plus_shift,
     minus_shift,
-    auto_detect_shift,
     tempname,
     close_after_import=True,
     to_csc=True,
@@ -41,17 +35,30 @@ def import_data(
     and shifts the fragments if necessary.
 
     Parameters:
-    path (str): The path to the input fragments file.
-    barcode (list[str]): The whitelist of barcodes to be included in the data.
-    gff_file (str): The path to the GFF file containing gene annotations.
-    chrom_sizes (dict[str, int]): A dictionary mapping chromosome names to their sizes.
-    extra_plus_shift (int): The extra shift to be added to the plus strand fragments.
-    extra_minus_shift (int): The extra shift to be added to the minus strand fragments.
-    tempname (str): The temporary name for the output file.
-    kwargs: Additional keyword arguments to be passed to the import_data function.
+    -----------
+    path: str
+        The path to the input fragments file.
+    barcode: list[str]
+        The whitelist of barcodes to be included in the data.
+    genome: Genome
+        The scp.genome.Genome object that contains all the necessary information for the genome.
+    plus_shift: int
+        The extra shift for the left end of the fragment.
+    minus_shift: int
+        The extra shift for the right end of the fragment.
+    tempname: str
+        The temporary name for the output file.
+    close_after_import: bool
+        Whether to close the AnnData object after importing the data. Default is True.
+    to_csc: bool
+        Whether to convert the data to CSC format. Default is True.
+    kwargs: dict
+        Additional keyword arguments to be passed to the snapatac2.pp.import_data function.
 
     Returns:
+    -------
     str: The temporary name of the output file.
+
     """
 
     if ".gz" not in path:
@@ -112,31 +119,33 @@ def import_fragments(
     **kwargs,
 ):
     """
-    Import ATAC fragments into single cell genomewide insertion profile backed in anndata format
+    Import ATAC fragments into single cell genome-wide insertion profile backed in anndata format and create the scPrinter obejct.
 
     Parameters
     ----------
     path_to_frags: str | list[str] | Path | list[Path]
         Path or List of paths to the fragment files. When multiple files are provided,
         they will be separately imported and concatenated.
-    sample_names: str | list[str] | None
-        The name of the samples. Recommend to use when inputing multiple fragments files, and there can be collision of barcode names.
-        When provided, the barcode will be appended with the sample name.
-    barcodes: list[str]
-        List of barcodes to be whitelisted. If None, all barcodes will be used. Recommend to use.
+    barcodes: list[str] | list[list[str]] | Path | list[Path]
+        List of barcodes to be whitelisted. If None, all barcodes will be used. When provide must be the same length as path_to_frags.
         If you input one fragments file, the barcodes can either be a list of barcodes, or the path to a barcode file
         where each line is one barcode to include.
         If you input multiple fragments files, the barcodes should be a list of list of barcodes, or a list of paths.
+        If you provide sample_names as well, the barcode here should be the one without appending the sample name (the raw barcode presentede in the fragments).
+        Note: if you provide a whitelist, each fragment file needs to have at least one barcode that got imported.
     savename: str | Path
-        Path to save the anndata object
+        Path to save the scPrinter anndata object
     genome: Genome
         Genome object that contains all the necessary information for the genome
+    sample_names: str | list[str] | None
+        The name of the samples. Recommend to use when inputting multiple fragments files, and there can be collision of barcode names.
+        When provided, the barcode will be appended with the sample name.
     plus_shift: int
         The shift **you have done** for the left end of the fragment. Default is 4,
         which is what the standard pipeline does
     minus_shift: int
         The shift **you have done** for the right end of the fragment. Default is -5,
-        which is what the standard pipeline does (terra SHARE-seq pipeline now does -4)
+        which is what the standard pipeline does (terra SHARE-seq pipeline now does -4, but chromap is -5)
     auto_detect_shift: bool
         Whether to automatically detect the shift. Default is True. It will overwrite the plus_shift and minus_shift you provided.
     unique_string: str
@@ -206,7 +215,6 @@ def import_fragments(
             genome,
             plus_shift,
             minus_shift,
-            auto_detect_shift,
             savename,
             close_after_import=False,
             **kwargs,
@@ -244,7 +252,6 @@ def import_fragments(
                     genome,
                     plus_shift,
                     minus_shift,
-                    auto_detect_shift,
                     savename + post_tag,
                     True,
                     False,
@@ -582,7 +589,31 @@ def export_bigwigs(
     printer.insertion_file.uns["group_bigwig"] = a
 
 
-def create_frag_group(temp_path, frag_file, cell_grouping, group_name):
+def create_frag_group(
+    temp_path: str | Path,
+    frag_file: str | list[str] | Path | list[Path],
+    cell_grouping: list[str] | np.ndarray,
+    group_name: str,
+):
+    """
+    Create a whitelist file for a specified group of cells and filter the fragments file based on the whitelist.
+
+    Parameters
+    ----------
+    temp_path: str | Path
+        The path to the temporary directory.
+    frag_file: str | list[str] | Path | list[Path]
+        The path to the fragments file or a list of paths to the fragments files.
+    cell_grouping: list[str] | np.ndarray
+        The list of cell barcodes for the group.
+    group_name: str
+        The name of the group.
+
+    Returns
+    -------
+
+    """
+
     if type(frag_file) is list:
         frag_file = " ".join(frag_file)
     bcs = np.sort(np.unique(cell_grouping))
@@ -592,7 +623,7 @@ def create_frag_group(temp_path, frag_file, cell_grouping, group_name):
     whitelist_file = os.path.join(temp_path, f"{group_name}_whitelist.txt")
     filtered_frag_file = os.path.join(temp_path, f"{group_name}_filtered_frag.tsv.gz")
     command = f"zcat {frag_file} | awk -v OFS='\t' 'NR==FNR{{a[$1]; next}} ($4 in a)' {whitelist_file} - | gzip > {filtered_frag_file}"
-    # print (command)
+    print(command)
     # Execute the command using subprocess.run
     subprocess.run(command, shell=True, check=True)
 
@@ -616,10 +647,10 @@ def call_peak_one_group(file_path, frag_file, grouping, name, preset, clean_temp
 
 
 def call_peaks(
-    printer,
-    frag_file,
-    cell_grouping,
-    group_names,
+    printer: scPrinter,
+    frag_file: str | list[str] | Path | list[Path],
+    cell_grouping: list[list[str]] | list[str],
+    group_names: list[str] | str,
     iterative_peak_merging=True,
     merge_across_groups=False,
     peak_width=1000,
@@ -629,6 +660,40 @@ def call_peaks(
     overwrite=True,
     **kwargs,
 ):
+    """
+    Calling peaks for the specified groups of cells and store them in the printer object.
+
+    Parameters
+    ----------
+    printer: scPrinter
+        The scPrinter object containing the insertion profile and other relevant information.
+    frag_file: str | list[str] | Path | list[Path]
+        The path to the fragments file or a list of paths to the fragments files.
+    cell_grouping: list[list[str]] | list[str]
+        The list of cell barcodes for group definitions.
+    group_names: list[str] | str
+        The names of the groups.
+    iterative_peak_merging: bool
+        Whether to perform iterative peak merging. Default is True.
+    merge_across_groups: bool
+        Whether to merge peaks across groups, or do iterative peak merging for each group. Default is False.
+    peak_width: int
+        The width of the peaks. Default is 1000.
+    clean_temp: bool
+        Whether to clean temporary files. Default is True.
+    preset: Literal["seq2PRINT", "chromvar", None]
+        The preset for peak calling. Default is None. preset includes 'seq2PRINT' and 'chromvar'. The former is better for training the seq2PRINT model, and the latter is better for general cellxpeak analysis.
+    n_jobs: int
+        Number of workers for parallel processing. Default is 20.
+    overwrite: bool
+        Overwrite the existing peak files. Default is True.
+    kwargs: dict
+        Additional keyword arguments to be passed to the clean_macs2 function.
+
+    Returns
+    -------
+
+    """
     if type(group_names) not in [np.ndarray, list]:
         group_names = [group_names]
         cell_grouping = [cell_grouping]

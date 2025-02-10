@@ -116,10 +116,15 @@ def get_delta_effects(
     motif_temp_file = os.path.join(save_path, "motif.npy")
     np.save(motif_temp_file, motif2dump)
     delta_effects_tempfile = os.path.join(save_path, "delta_effects.npy")
+    lora_ids_str = (
+        ",".join(["-".join([str(y) for y in x]) for x in lora_ids])
+        if lora_ids[0][0] is not None
+        else None
+    )
     command = (
         ["seq2print_delta", "--pt"]
         + model_path
-        + (["--ids", ",".join(map(str, lora_ids))] if lora_ids is not None else [])
+        + (["--ids", lora_ids_str] if lora_ids_str is not None else [])
         + [
             "--genome",
             genome.name,
@@ -247,11 +252,23 @@ def get_delta_effects(
 def plot_delta_effects(name2delta, flank=200, vmin=-0.3, vmax=0.3, save_path=None):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+    ct = 0
     for name in name2delta:
         delta = name2delta[name]
         pad = delta.shape[1] // 2 - flank
         if pad > 0:
             delta = delta[:, pad:-pad]
+        if ct == 0:
+            plt.figure(figsize=(4, 2))
+            sns.heatmap(np.zeros((10, 10)), cmap="RdBu_r", vmin=vmin, vmax=vmax, cbar=True)
+            # plt.axis("off")
+            # plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
+            # plt.margins(0, 0)
+            plt.savefig(os.path.join(save_path, f"cbar.pdf"))
+            plt.close("all")
+
+        ct += 1
+
         plt.figure(figsize=(4, 2))
         sns.heatmap(delta[::-1] / 5, cmap="RdBu_r", vmin=vmin, vmax=vmax, cbar=False)
         plt.axis("off")
