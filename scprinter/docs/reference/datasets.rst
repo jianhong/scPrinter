@@ -48,9 +48,9 @@ FigR datasets
     datasets.FigR_motifs_bagging_human
     datasets.FigR_motifs_mouse_meme
     datasets.FigR_motifs_human_meme
-    datasets.hg19TSSRanges
-    datasets.hg38TSSRanges
-    datasets.mm10TSSRanges
+    datasets.FigR_hg19TSSRanges
+    datasets.FigR_hg38TSSRanges
+    datasets.FigR_mm10TSSRanges
 
 
 Tutorial Datasets
