@@ -2312,7 +2312,7 @@ def seq_tfbs_seq2print(
             seq_attr = []
 
             if overwrite_seqattr:
-                for id_str in save_group_names:
+                for id, id_str in zip(group_names, save_group_names):
                     for model in model_path:
                         seq_attr_path = os.path.join(
                             f"{model}_{save_key}",
