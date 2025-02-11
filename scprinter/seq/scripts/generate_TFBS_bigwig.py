@@ -246,7 +246,7 @@ def main():
                 results.append(np.load(f"{collection_name}_temp_TFBS_part{i}_TFBS.npz")["tfbs"])
             avg = np.concatenate(results)
             np.savez(
-                collection_name + "TFBS.npz",
+                collection_name + "_TFBS.npz",
                 tfbs=avg,
             )
             for i in range(len(gpus)):
@@ -302,7 +302,7 @@ def main():
 
         if args.write_numpy:
             np.savez(
-                collection_name + "TFBS.npz",
+                collection_name + "_TFBS.npz",
                 tfbs=avg,
             )
         else:
@@ -319,7 +319,7 @@ def main():
                     genome.chrom_sizes,
                     res=1,
                     mode="average",
-                    output=name + "TFBS.bigwig",
+                    output=name + "_TFBS.bigwig",
                     verbose=not silent,
                 )
 

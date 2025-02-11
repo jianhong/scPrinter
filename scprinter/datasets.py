@@ -97,11 +97,10 @@ def datasets():
                 "mm39.excluderanges.bed": "md5:9445a55bcebb3940ad98178370980318",
             },
             urls={
-                "dispersion_model_py.h5": "https://drive.google.com/uc?export=download&id=1O7zGvmJIArJjLooW0pzZyEbm2AaFE2bg",
-                # "TFBS_model_py.h5": "https://drive.google.com/uc?export=download&id=1gogFjnhhiVn8oJRkFNa1x1uEN1bCYKKA",
-                "nucleosome_model_py.pt": "https://drive.google.com/uc?export=download&id=16TVhzfSAva4um_mB0hpoOlByVlSz3Yv9",
-                "TFBS_model_py.pt": "https://drive.google.com/uc?export=download&id=1gtJIbkNEAq93s4i-WNV89lxmM-0cRotW",
-                "TFBS_model_model1_py.pt": "https://drive.google.com/uc?export=download&id=1SaY4zv_uMXyDTLDZMsAhkWU-j1WvoCrn",
+                "dispersion_model_py.h5": "https://zenodo.org/records/14194242/files/dispersion_model_py.h5",
+                "nucleosome_model_py.pt": "https://zenodo.org/records/14194242/files/nucleosome_model_py.pt",
+                "TFBS_model_py.pt": "https://zenodo.org/records/14194242/files/TFBS_model_py.pt",
+                "TFBS_model_model1_py.pt": "https://zenodo.org/records/14194242/files/TFBS_model_cluster_I_py.pt",
                 # Sequence TFBS models:
                 "TFBS_0_conv_v2.pt": "https://drive.google.com/uc?export=download&id=1GtiKuIQ03TWppeDoGzE3rgnZ7MCS61lq",
                 "TFBS_1_conv_v2.pt": "https://drive.google.com/uc?export=download&id=1PGWdU9E41zfyIK53BFoJ89yFJPSoNkPA",
@@ -119,7 +118,6 @@ def datasets():
                 "TSSRanges_hg38_FigR": "https://github.com/ruochiz/FigRmotifs/raw/main/hg38TSSRanges.txt",
                 "TSSRanges_mm10_FigR": "https://github.com/ruochiz/FigRmotifs/raw/main/mm10TSSRanges.txt",
                 # bias file
-                # "hg38Tn5Bias.h5": "https://drive.google.com/uc?export=download&confirm=s5vl&id=1Ias_dP2docuXRGcoQrGHMNOlIwhgJZoJ",
                 "ce11Tn5Bias.tar.gz": "https://zenodo.org/record/7121027/files/ce11Tn5Bias.tar.gz",
                 "danRer11Tn5Bias.tar.gz": "https://zenodo.org/record/7121027/files/danRer11Tn5Bias.tar.gz",
                 "dm6Tn5Bias.tar.gz": "https://zenodo.org/record/7121027/files/dm6Tn5Bias.tar.gz",
