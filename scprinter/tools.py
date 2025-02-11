@@ -1470,7 +1470,17 @@ def get_insertions(
             atac = _get_group_atac(printer, cell_grouping, regions.iloc[i])
             if summarize_func is not None:
                 atac = summarize_func(atac)
-            adata_obsm[region_identifier] = atac
+
+            if backed:
+                adata_obsm.create_dataset(region_identifier, data=atac)
+                adata_obsm[region_identifier].attrs["encoding-type"] = "array"
+                adata_obsm[region_identifier].attrs["encoding-version"] = "0.2.0"
+            else:
+                adata_obsm[region_identifier] = atac
+
+        if backed:
+            adata.close()
+            adata = snap.read(save_path)
         printer.insertionadata[save_key] = adata
 
 
@@ -2349,6 +2359,7 @@ def seq_tfbs_seq2print(
                         genome=genome,
                         gpus=gpus,
                         preset=kind,
+                        lora_config=lora_config,
                         overwrite=overwrite_seqattr,
                         verbose=False,
                         group_names=generate_seq_attr,
