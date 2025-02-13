@@ -2128,6 +2128,7 @@ def seq_attr_seq2print(
             group_names = [group_names]
         if type(group_names[0]) is str:
             group_names = [[x] for x in group_names]
+        group_names = [[str(xx) for xx in x] for x in group_names]
         lora_ids = [[group_names_query[xx] for xx in group] for group in group_names]
         if type(lora_ids) is int:
             lora_ids = [[lora_ids]]
@@ -2141,7 +2142,8 @@ def seq_attr_seq2print(
                 save_group_names
             ), "group_names and save_group_names must have the same length"
             save_group_names = ",".join([str(x) for x in save_group_names])
-
+        print("group_names", group_names)
+        print("save_group_names", save_group_names)
         command += f" --models {lora_ids_str}"
         command += f" --save_names {save_group_names}"
     if preset is not None:
