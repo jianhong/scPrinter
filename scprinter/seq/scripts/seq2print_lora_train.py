@@ -626,7 +626,7 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
         verbose=True,
         launch=True,
         # lora_ids=[i for i in range(num_cell)],
-        lora_config=config,
+        lora_config=config["config_path"],
         group_names=config["group_names"],
     )
     foot_hypo = scp.tl.seq_attr_seq2print(
@@ -642,7 +642,7 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
         verbose=True,
         launch=True,
         # lora_ids=[i for i in range(num_cell)],
-        lora_config=config,
+        lora_config=config["config_path"],
         group_names=config["group_names"],
     )
     acc_model = torch.load(f"{model_dir}/{savename}-{wandb_run_name}.pt", map_location="cpu")
@@ -704,6 +704,7 @@ def main():
     config["data_dir"] = args.data_dir
     config["temp_dir"] = args.temp_dir
     config["model_dir"] = args.model_dir
+    config["config_path"] = args.config
 
     if args.enable_wandb:
         # start a new wandb run to track this script
