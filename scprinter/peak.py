@@ -386,7 +386,7 @@ def clean_macs2(
         blacklist_peak_width = 800
         final_peak_width = 300
 
-    if type(name) is not list:
+    if type(name) not in [list, np.ndarray]:
         name = [name]
     cleaned_peaks, _ = make_peaks_df_bioframe(
         [os.path.join(outdir, n + "_summits.bed") for n in name],

@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pyBigWig
 from anndata import AnnData
 from scipy.sparse import coo_matrix, csc_matrix, csr_matrix, hstack, issparse, vstack
@@ -594,6 +595,7 @@ def create_frag_group(
     frag_file: str | list[str] | Path | list[Path],
     cell_grouping: list[str] | np.ndarray,
     group_name: str,
+    sample_names,
 ):
     """
     Create a whitelist file for a specified group of cells and filter the fragments file based on the whitelist.
@@ -614,23 +616,45 @@ def create_frag_group(
 
     """
 
-    if type(frag_file) is list:
-        frag_file = " ".join(frag_file)
-    bcs = np.sort(np.unique(cell_grouping))
-    with open(os.path.join(temp_path, f"{group_name}_whitelist.txt"), "w") as f:
-        for w in bcs:
-            f.write(w + "\n")
-    whitelist_file = os.path.join(temp_path, f"{group_name}_whitelist.txt")
+    if type(frag_file) is not list:
+        frag_file = [frag_file]
+    if sample_names is None:
+        sample_names = [None] * len(frag_file)
+    if type(sample_names) is not list:
+        sample_names = [sample_names]
+
+    bcs = set(np.sort(np.unique(cell_grouping)))
     filtered_frag_file = os.path.join(temp_path, f"{group_name}_filtered_frag.tsv.gz")
-    command = f"zcat {frag_file} | awk -v OFS='\t' 'NR==FNR{{a[$1]; next}} ($4 in a)' {whitelist_file} - | gzip > {filtered_frag_file}"
-    print(command)
-    # Execute the command using subprocess.run
-    subprocess.run(command, shell=True, check=True)
+    for frag, sample_name in zip(frag_file, sample_names):
+        reader = pd.read_csv(frag, sep="\t", header=None, chunksize=100000)
+        for chunk in reader:
+            chunk_bc = (
+                chunk[3] if sample_name is None else [sample_name + "_" + xx for xx in chunk[3]]
+            )
+            boolean_mask = [xx in bcs for xx in chunk_bc]
+            chunk = chunk[boolean_mask]
+            if len(chunk) > 0:
+                chunk.to_csv(filtered_frag_file, sep="\t", header=False, index=False, mode="a")
+
+    # if type(frag_file) is list:
+    #     frag_file = " ".join(frag_file)
+    #
+    # with open(os.path.join(temp_path, f"{group_name}_whitelist.txt"), "w") as f:
+    #     for w in bcs:
+    #         f.write(w + "\n")
+    # whitelist_file = os.path.join(temp_path, f"{group_name}_whitelist.txt")
+    #
+    # command = f"zcat {frag_file} | awk -v OFS='\t' 'NR==FNR{{a[$1]; next}} ($4 in a)' {whitelist_file} - | gzip > {filtered_frag_file}"
+    # print(command)
+    # # Execute the command using subprocess.run
+    # subprocess.run(command, shell=True, check=True)
 
 
-def call_peak_one_group(file_path, frag_file, grouping, name, preset, clean_temp=True):
+def call_peak_one_group(
+    file_path, frag_file, grouping, name, preset, clean_temp=True, sample_names=None
+):
     if grouping is not None:
-        create_frag_group(file_path, frag_file, grouping, name)
+        create_frag_group(file_path, frag_file, grouping, name, sample_names)
     macs2(
         (
             os.path.join(file_path, f"{name}_filtered_frag.tsv.gz")
@@ -658,6 +682,7 @@ def call_peaks(
     preset: Literal["seq2PRINT", "chromvar", None] = None,
     n_jobs=20,
     overwrite=True,
+    sample_names=None,
     **kwargs,
 ):
     """
@@ -711,8 +736,16 @@ def call_peaks(
         ) and (not overwrite):
             continue
         pool.submit(
-            call_peak_one_group, printer.file_path, frag_file, grouping, name, preset, clean_temp
+            call_peak_one_group,
+            printer.file_path,
+            frag_file,
+            grouping,
+            name,
+            preset,
+            clean_temp,
+            sample_names,
         )
+        # call_peak_one_group(printer.file_path, frag_file, grouping, name, preset, clean_temp, sample_names)
 
     pool.shutdown(wait=True)
     for name in group_names:
