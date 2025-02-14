@@ -604,7 +604,7 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
 
     # Now that the model is trained we use it to estimate the normalization range of the shap values
     # For LoRA model the tricky part is that we also need to sample across multiple cells.
-    model_type = "lora"
+    model_type = "lora" if lora_mode else "seq2print"
     model = f"{model_dir}/{savename}-{wandb_run_name}.pt"
     gpus = [0]
     peak_file = os.path.join(data_dir, config["peaks"])
