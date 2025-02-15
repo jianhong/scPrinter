@@ -135,7 +135,9 @@ def main():
     torch.set_num_threads(4)
     args = parser.parse_args()
     gpus = args.gpus
+    print("gpus", gpus)
     if len(gpus) == 1:
+        print("setting device", int(gpus[0]))
         torch.cuda.set_device(int(gpus[0]))
     CREs = regionparser(args.peaks, None)
     if len(CREs) > args.sample_num:
@@ -244,6 +246,7 @@ def main():
             subprocess.run(["rm", args.output + f"_part{i}"])
     else:
         torch.cuda.set_device(int(gpus[0]))
+
         motifs = np.load(args.motifs, allow_pickle=True)
         results_fp_all = []
         results_count_all = []

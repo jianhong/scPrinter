@@ -225,7 +225,7 @@ def main():
             + (["--read_numpy"] if args.read_numpy else [])
             + (["--write_numpy"] if args.write_numpy else [])
             + (
-                ["--collection_name", f"{collection_name}_temp_TFBS_part{i}_"]
+                ["--collection_name", f"{collection_name}_temp_TFBS_part{i}"]
                 if args.write_numpy
                 else ["--save_name", ",".join(list(save_name_batch[i]))]
             )
