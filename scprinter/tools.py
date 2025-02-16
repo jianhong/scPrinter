@@ -2427,7 +2427,7 @@ def seq_tfbs_seq2print(
     if return_adata:
         regions = regionparser(region_path, printer=None, width=800)
         region_identifiers = df2regionidentifier(regions)
-        results = np.load(f"{save_key}TFBS.npz")["tfbs"]
+        results = np.load(f"{save_key}_TFBS.npz")["tfbs"]
 
         print("obs=groups, var=regions")
         lora_ids_str = save_group_names
