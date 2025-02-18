@@ -681,7 +681,7 @@ def call_peaks(
     clean_temp=True,
     preset: Literal["seq2PRINT", "chromvar", None] = None,
     n_jobs=20,
-    overwrite=True,
+    overwrite=False,
     sample_names=None,
     **kwargs,
 ):

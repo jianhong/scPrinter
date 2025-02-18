@@ -2850,9 +2850,6 @@ def delta_effects_seq2print(
         vmax = cutoff
         print("Using vmin/vmax:", vmin, vmax)
     if plot:
-        if lora_ids is not None:
-            print("Currently not supporting lora model for plotting delta effects")
-            return de
         interpretation.plot_delta_effects(
             {k: de[k][0][0] for k in de}, flank=flank, vmin=vmin, vmax=vmax, save_path=save_path
         )
