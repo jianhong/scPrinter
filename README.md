@@ -92,7 +92,7 @@ mamba env config vars set SCPRINTER_DATA=/n/holylfs06/LABS/buenrostro_lab/Lab/.c
 
 ## Usage and Tutorial
 
-See documentation and tutorials at https://ruochiz.com/scprinter_doc/
+Quick-start tutorials can be found at https://github.com/buenrostrolab/PRINT/blob/main/analyses/PBMCTutorial/PBMC_scATAC_tutorial.ipynb (for single cell ATAC) and https://github.com/buenrostrolab/PRINT/blob/main/analyses/PBMCTutorial/PBMC_bulkATAC_tutorial.ipynb (for bulk ATAC). For more detailed information please see our documentation and tutorials at https://ruochiz.com/scprinter_doc/. API reference can be found at https://ruochiz.com/scprinter_doc/reference/index.html.
 
 ## Citation
 
