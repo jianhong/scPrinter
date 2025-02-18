@@ -201,6 +201,7 @@ def main():
         cached=False,
         reverse_compliment=False,
         device="cpu",
+        verbose=verbose,
     )
     summits = dataset.summits
     start = args.start

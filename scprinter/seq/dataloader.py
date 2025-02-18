@@ -68,6 +68,7 @@ class seq2PRINTDataset(torch.utils.data.Dataset):
         reverse_compliment=False,
         device="cpu",
         initialize=True,
+        verbose=True,
     ):
         self.signal_paths = signals
         self.signals = [pyBigWig.open(signal) for signal in signals]
@@ -91,14 +92,14 @@ class seq2PRINTDataset(torch.utils.data.Dataset):
             self.min_counts = -1
         if self.max_counts is None:
             self.max_counts = 1e16
-
+        self.verbose = verbose
         if initialize:
             print("input summits", len(summits))
             summits_valid = np.array(
                 [
                     self.validate_loci(chrom, summit)
                     for chrom, summit in zip(
-                        tqdm(summits.iloc[:, 0], desc="validating loci"),
+                        tqdm(summits.iloc[:, 0], desc="validating loci", disable=not verbose),
                         summits.iloc[:, 1],
                     )
                 ]
@@ -110,7 +111,9 @@ class seq2PRINTDataset(torch.utils.data.Dataset):
                 [
                     self.fetch_cov(chrom, summit)
                     for chrom, summit in zip(
-                        tqdm(self.summits.iloc[:, 0], desc="fetching coverage"),
+                        tqdm(
+                            self.summits.iloc[:, 0], desc="fetching coverage", disable=not verbose
+                        ),
                         self.summits.iloc[:, 1],
                     )
                 ]
@@ -137,7 +140,9 @@ class seq2PRINTDataset(torch.utils.data.Dataset):
             if self.cached:
                 self.cache_seqs = []
                 self.cache_signals = []
-                for chrom, summit in tqdm(self.summits[:, :2], desc="Caching sequences"):
+                for chrom, summit in tqdm(
+                    self.summits[:, :2], desc="Caching sequences", disable=not verbose
+                ):
                     DNA, signal = self.fetch_loci(chrom, summit)
                     self.cache_seqs.append(DNA)
                     self.cache_signals.append(signal)
@@ -165,7 +170,8 @@ class seq2PRINTDataset(torch.utils.data.Dataset):
             [
                 self.validate_loci(chrom, summit)
                 for chrom, summit in zip(
-                    tqdm(self.summits[:, 0], desc="validating loci"), self.summits[:, 1]
+                    tqdm(self.summits[:, 0], desc="validating loci", disable=not self.verbose),
+                    self.summits[:, 1],
                 )
             ]
         )
@@ -176,7 +182,7 @@ class seq2PRINTDataset(torch.utils.data.Dataset):
             [
                 self.fetch_cov(chrom, summit)
                 for chrom, summit in zip(
-                    tqdm(self.summits[:, 0], desc="fetching coverage"),
+                    tqdm(self.summits[:, 0], desc="fetching coverage", disable=not self.verbose),
                     self.summits[:, 1],
                 )
             ]
@@ -205,7 +211,9 @@ class seq2PRINTDataset(torch.utils.data.Dataset):
         self.cached = True
         self.cache_seqs = []
         self.cache_signals = []
-        for chrom, summit in tqdm(self.summits[:, :2], desc="Caching sequences"):
+        for chrom, summit in tqdm(
+            self.summits[:, :2], desc="Caching sequences", disable=not self.verbose
+        ):
             DNA, signal = self.fetch_loci(chrom, summit)
             self.cache_seqs.append(DNA)
             self.cache_signals.append(signal)
@@ -521,6 +529,7 @@ class scseq2PRINTDataset(torch.utils.data.Dataset):
         data_augmentation=False,
         mode="uniform",
         cell_sample=10,
+        verbose=True,
     ):
         # set global var for easy access
         global global_insertion_dict
@@ -546,14 +555,14 @@ class scseq2PRINTDataset(torch.utils.data.Dataset):
         self.data_augmentation = data_augmentation
         self.mode = mode
         self.cell_sample = cell_sample
-
+        self.verbose = verbose
         if initialize:
             print("input summits", len(summits))
             summits_valid = np.array(
                 [
                     self.validate_loci(chrom, summit)
                     for chrom, summit in zip(
-                        tqdm(summits.iloc[:, 0], desc="validating loci"),
+                        tqdm(summits.iloc[:, 0], desc="validating loci", disable=not self.verbose),
                         summits.iloc[:, 1],
                     )
                 ]
@@ -650,7 +659,9 @@ class scseq2PRINTDataset(torch.utils.data.Dataset):
         self.cached = True
         self.cache_seqs = []
         self.cache_bias = []
-        for chrom, summit in tqdm(self.summits[:, :2], desc="Caching sequences"):
+        for chrom, summit in tqdm(
+            self.summits[:, :2], desc="Caching sequences", disable=not self.verbose
+        ):
             DNA, bias = self.fetch_loci_dna_bias(chrom, summit)
             self.cache_seqs.append(DNA)
             self.cache_bias.append(bias)
