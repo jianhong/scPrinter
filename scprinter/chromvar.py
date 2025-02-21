@@ -235,7 +235,15 @@ def compute_deviations(adata, chunk_size: int = 10000, device="cuda"):
     )
     expectation_var /= expectation_var.sum()
     expectation_obs = np.asarray(adata.X.sum(1), dtype=np.float32).reshape((adata.X.shape[0], 1))
-    motif_match = backend.asarray(adata.varm["motif_match"], dtype=backend.float32)
+
+    motif_match = adata.varm["motif_match"]
+    if sparse.isspmatrix(motif_match):
+        if device == "cuda":
+            motif_match = scipy_to_cupy_sparse(motif_match)
+        else:
+            motif_match = motif_match.tocsr()
+    else:
+        motif_match = backend.asarray(motif_match, dtype=backend.float32)
 
     obs_dev = np.zeros((adata.n_obs, motif_match.shape[1]), dtype=np.float32)
     n_bg_peaks = adata.varm["bg_peaks"].shape[1]

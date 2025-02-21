@@ -10,8 +10,6 @@ from scprinter.seq.dataloader import *
 from scprinter.seq.interpretation.attributions import *
 from scprinter.seq.Models import *
 
-# multiple savename error
-
 
 @torch.no_grad()
 def forward_pass_model(feats, model):
