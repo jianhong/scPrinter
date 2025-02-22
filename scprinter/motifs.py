@@ -751,7 +751,11 @@ class Motifs:
         # Function implementation goes here
         res = self.scan_motif(peaks, verbose=verbose, count=True)
         res = np.array(res)
-        res = pd.DataFrame(res, index=adata.var_names, columns=[m.name for m in self.all_motifs])
+        res = pd.DataFrame(
+            res,
+            index=adata.var_names,
+            columns=[m.name for m, select in zip(self.all_motifs, self.select) if select],
+        )
         adata.varm["motif_match"] = res.to_numpy()
         adata.uns["motif_name"] = res.columns
 

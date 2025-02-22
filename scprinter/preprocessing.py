@@ -722,8 +722,8 @@ def call_peaks(
     if type(group_names) not in [np.ndarray, list]:
         group_names = [group_names]
         cell_grouping = [cell_grouping]
-
-    pool = ProcessPoolExecutor(max_workers=n_jobs)
+    if n_jobs > 1:
+        pool = ProcessPoolExecutor(max_workers=n_jobs)
 
     if "peak_calling" in printer.uns:
         peak_calling = printer.uns["peak_calling"]
@@ -735,19 +735,23 @@ def call_peaks(
             os.path.exists(os.path.join(printer.file_path, "macs2", f"{name}_peaks.narrowPeak"))
         ) and (not overwrite):
             continue
-        pool.submit(
-            call_peak_one_group,
-            printer.file_path,
-            frag_file,
-            grouping,
-            name,
-            preset,
-            clean_temp,
-            sample_names,
-        )
-        # call_peak_one_group(printer.file_path, frag_file, grouping, name, preset, clean_temp, sample_names)
-
-    pool.shutdown(wait=True)
+        if n_jobs > 1:
+            pool.submit(
+                call_peak_one_group,
+                printer.file_path,
+                frag_file,
+                grouping,
+                name,
+                preset,
+                clean_temp,
+                sample_names,
+            )
+        else:
+            call_peak_one_group(
+                printer.file_path, frag_file, grouping, name, preset, clean_temp, sample_names
+            )
+    if n_jobs > 1:
+        pool.shutdown(wait=True)
     for name in group_names:
         peak = os.path.join(printer.file_path, "macs2", f"{name}_peaks.narrowPeak")
         peak = resize_bed_df(pd.read_csv(peak, sep="\t", header=None), peak_width)

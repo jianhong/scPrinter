@@ -101,8 +101,6 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
     dispmodel = loadDispModel(disp_path)
     dispmodel = dispModel(deepcopy(dispmodel)).cuda()
 
-    config = wandb.config
-
     data_dir = config["data_dir"]
     temp_dir = config["temp_dir"]
     model_dir = config["model_dir"]

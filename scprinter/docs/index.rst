@@ -36,7 +36,6 @@ The original multi-scale footprinting algorithm is described in the following pa
   pages={1--8},
   year={2025},
   publisher={Nature Publishing Group UK London}
-}
 
 
 .. toctree::

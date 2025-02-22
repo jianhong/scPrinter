@@ -7,6 +7,7 @@ import pandas as pd
 import scipy
 import scipy.sparse as sparse
 from anndata import AnnData
+from cupyx.scipy.sparse import issparse as cupyx_issparse
 from pynndescent import NNDescent
 from scipy.sparse import csr_matrix as scipy_csr_matrix
 from tqdm.auto import tqdm, trange
@@ -305,8 +306,10 @@ def _compute_deviations(motif_match, count, expectation_obs, expectation_var, de
     else:
         import numpy as backend
 
-    observed = count.dot(motif_match)
-    expected = expectation_obs.dot(expectation_var.dot(motif_match))
+    observed = count @ motif_match
+    if cupyx_issparse(observed):
+        observed = observed.toarray()
+    expected = expectation_obs @ (expectation_var @ motif_match)
     out = backend.zeros_like(expected)
     backend.divide(observed - expected, expected, out=out)
     out[expected == 0] = 0
@@ -386,7 +389,7 @@ def bag_deviations(
     TFgroups = []
     while len(TFnames) != 0:
         tfcur = TFnames[0]
-        boo = ((tf1 == tfcur) | (tf2 == tfcur)) & (factor >= cutoff)
+        boo = np.array(((tf1 == tfcur) | (tf2 == tfcur)) & (factor >= cutoff))
         hits = cormat[boo]
         tfhits = list(set(list(np.unique(hits.iloc[:, :2])) + [tfcur]))
 
