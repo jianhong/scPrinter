@@ -734,6 +734,7 @@ def call_peaks(
         if (
             os.path.exists(os.path.join(printer.file_path, "macs2", f"{name}_peaks.narrowPeak"))
         ) and (not overwrite):
+            print("continue")
             continue
         if n_jobs > 1:
             pool.submit(
@@ -754,7 +755,7 @@ def call_peaks(
         pool.shutdown(wait=True)
     for name in group_names:
         peak = os.path.join(printer.file_path, "macs2", f"{name}_peaks.narrowPeak")
-        peak = resize_bed_df(pd.read_csv(peak, sep="\t", header=None), peak_width)
+        peak = resize_bed_df(pd.read_csv(peak, sep="\t", header=None, comment="#"), peak_width)
         peak_calling[name] = peak
 
     if iterative_peak_merging:
