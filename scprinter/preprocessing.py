@@ -626,7 +626,7 @@ def create_frag_group(
     bcs = set(np.sort(np.unique(cell_grouping)))
     filtered_frag_file = os.path.join(temp_path, f"{group_name}_filtered_frag.tsv.gz")
     for frag, sample_name in zip(frag_file, sample_names):
-        reader = pd.read_csv(frag, sep="\t", header=None, chunksize=100000)
+        reader = pd.read_csv(frag, sep="\t", header=None, chunksize=100000, comment="#")
         for chunk in reader:
             chunk_bc = (
                 chunk[3] if sample_name is None else [sample_name + "_" + xx for xx in chunk[3]]
