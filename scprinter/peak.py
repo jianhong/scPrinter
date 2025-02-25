@@ -430,7 +430,7 @@ def macs2(frag_file, name, outdir, format="BEDPE", p_cutoff=None):
 
     if type(frag_file) is not list:
         frag_file = [frag_file]
-    for i in range(frag_file):
+    for i in range(len(frag_file)):
         frag_file[i] = str(frag_file[i]).replace("//", "/")  # macs2 does not like double slashes
     # assert genome is not None, "genome must be provided"
     commands = (
@@ -475,6 +475,7 @@ def macs2(frag_file, name, outdir, format="BEDPE", p_cutoff=None):
         commands.extend(["-p", str(p_cutoff)])
     else:
         commands.extend(["-q", "0.01"])
+    print("running macs2 with", " ".join(commands))
     subprocess.run(commands)
 
 

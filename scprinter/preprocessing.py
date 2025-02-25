@@ -627,6 +627,7 @@ def create_frag_group(
     filtered_frag_file = os.path.join(temp_path, f"{group_name}_filtered_frag.tsv.gz")
     for frag, sample_name in zip(frag_file, sample_names):
         reader = pd.read_csv(frag, sep="\t", header=None, chunksize=100000, comment="#")
+
         for chunk in reader:
             chunk_bc = (
                 chunk[3] if sample_name is None else [sample_name + "_" + xx for xx in chunk[3]]
@@ -666,8 +667,8 @@ def call_peak_one_group(
         p_cutoff=0.01 if preset == "seq2PRINT" else None,
     )
     if clean_temp:
-        os.remove(os.path.join(file_path, f"{name}_filtered_frag.tsv.gz"))
-        os.remove(os.path.join(file_path, f"{name}_whitelist.txt"))
+        if grouping is not None:
+            os.remove(os.path.join(file_path, f"{name}_filtered_frag.tsv.gz"))
 
 
 def call_peaks(
@@ -722,6 +723,7 @@ def call_peaks(
     if type(group_names) not in [np.ndarray, list]:
         group_names = [group_names]
         cell_grouping = [cell_grouping]
+        sample_names = [sample_names]
     if n_jobs > 1:
         pool = ProcessPoolExecutor(max_workers=n_jobs)
 

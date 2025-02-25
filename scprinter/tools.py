@@ -1952,7 +1952,7 @@ def ohe_from_region(
     summits["summits"] = np.array(summits["summits"], dtype=int)
     if model is not None:
         if type(model) is not torch.nn.Module:
-            acc_model = torch.load(model, map_location="cpu")
+            acc_model = torch.load(model, map_location="cpu", weights_only=False)
         else:
             acc_model = model
         acc_model.eval()

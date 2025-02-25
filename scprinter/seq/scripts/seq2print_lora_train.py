@@ -163,7 +163,7 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
 
     lr = config["lr"]
     if lora_mode:
-        acc_model = torch.load(pretrain_model)
+        acc_model = torch.load(pretrain_model, map_location="cpu", weights_only=False)
     else:
         acc_model, dna_len, output_len = construct_model_from_config(config)
         acc_model.dna_len = dna_len
@@ -389,7 +389,9 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
         acc_model = acc_model.cuda()
 
     if pretrain_lora_model is not None:
-        pretrain_lora_model = torch.load(pretrain_lora_model, map_location="cpu")
+        pretrain_lora_model = torch.load(
+            pretrain_lora_model, map_location="cpu", weights_only=False
+        )
         acc_model.load_state_dict(pretrain_lora_model.state_dict())
         if cells_of_interest is not None:
             acc_model.embeddings = nn.Embedding.from_pretrained(
@@ -569,7 +571,9 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
     )
     if ema:
         del acc_model
-        acc_model = torch.load(f"{temp_dir}/{wandb_run_name}.ema_model.pt").cuda()
+        acc_model = torch.load(
+            f"{temp_dir}/{wandb_run_name}.ema_model.pt", map_location="cpu", weights_only=False
+        ).cuda()
     acc_model.eval()
     savename = config["savename"]
     acc_model.count_norm = [0, 0, 1]
@@ -643,7 +647,9 @@ def entry(config=None, wandb_run_name="", enable_wandb=True):
         lora_config=config["config_path"],
         group_names=list(config["group_names"]) if "group_names" in config else None,
     )
-    acc_model = torch.load(f"{model_dir}/{savename}-{wandb_run_name}.pt", map_location="cpu")
+    acc_model = torch.load(
+        f"{model_dir}/{savename}-{wandb_run_name}.pt", map_location="cpu", weights_only=False
+    )
     count_hypo = np.load(count_hypo)
     foot_hypo = np.load(foot_hypo)
     low, median, high = count_hypo
