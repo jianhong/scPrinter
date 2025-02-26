@@ -24,7 +24,7 @@ def sample_bg_peaks(
     w=0.1,
     bs=50,
     n_jobs=1,
-    gc_bias=True,
+    bg_columns=["gc_content"],
 ):
     """
     This function samples background peaks for chromVAR analysis in single-cell ATAC-seq data.
@@ -60,15 +60,16 @@ def sample_bg_peaks(
     array-like
         Array containing indices of sampled background peaks for each peak.
     """
-    if gc_bias:
+    if "gc_content" in bg_columns:
         get_peak_bias(adata, genome)
     assert method in ["nndescent", "chromvar"], "Method not supported"
     reads_per_peak = adata.X.sum(axis=0)
     assert np.min(reads_per_peak) > 0, "Some peaks have no reads"
     reads_per_peak = np.log10(reads_per_peak)
     reads_per_peak = np.array(reads_per_peak).reshape((-1))
-    if gc_bias:
-        mat = np.array([reads_per_peak, adata.var["gc_content"].values])
+    adata.var["reads_per_peak"] = reads_per_peak
+    if len(bg_columns) > 0:
+        mat = np.array(adata.var[list(bg_columns) + ["reads_per_peak"]].values).T
         chol_cov_mat = np.linalg.cholesky(np.cov(mat))
         trans_norm_mat = scipy.linalg.solve_triangular(
             a=chol_cov_mat, b=mat, lower=True
@@ -409,3 +410,42 @@ def bag_deviations(
         return objReduced
     else:
         return sentinalTFs, TFgroups
+
+
+def permutation_test(
+    adata: AnnData,
+    groupby: str,
+    group1: str,
+    group2=None,
+    n_iterations: int = 1000,
+):
+
+    group = adata.obs[groupby].values
+    fg = adata.X[group == group1]
+    bg = adata.X[group == group2] if group2 is not None else adata.X[group != group1]
+
+    obs_stat = np.array(fg.mean(axis=0) - bg.mean(axis=0))
+    bg_stat = []
+    for i in trange(n_iterations):
+        np.random.shuffle(group)
+        fg = adata.X[group == group1]
+        bg = adata.X[group == group2] if group2 is not None else adata.X[group != group1]
+        bg_stat.append(np.array(fg.mean(axis=0) - bg.mean(axis=0)))
+    bg_stat_mean = np.mean(bg_stat, axis=0)
+    bg_stat_std = np.std(bg_stat, axis=0)
+
+    zscore = (obs_stat - bg_stat_mean) / bg_stat_std
+
+    pval = scipy.stats.norm.cdf(zscore, 0, 1)
+    pval = np.minimum(pval, 1 - pval)
+
+    res = pd.DataFrame(
+        {
+            "stat": obs_stat,
+            "zscore": zscore,
+            "pval": pval,
+        },
+        index=adata.var_names,
+    )
+
+    return res

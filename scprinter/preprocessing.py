@@ -395,7 +395,7 @@ def make_gene_matrix(
             printer, regions, cell_grouping=cell_grouping, group_names=group_names, sparse=sparse
         )
 
-        adata.var.index = regions["gene_id"]
+        adata.var.index = list(regions["gene_id"])
         return adata
     else:
         print("Sorry, the current implementation only supports 'gene' strategy.")

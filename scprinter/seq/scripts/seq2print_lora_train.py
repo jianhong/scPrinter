@@ -733,7 +733,12 @@ def main():
             entry(config, wandb_run_name, args.enable_wandb)
     else:
         config = config
-        wandb_run_name = ""
+        import wandb
+        from wandb.sdk.lib.runid import generate_id
+
+        random_name = generate_id()
+        print(random_name)  # Example: "bold-otter-17"
+        wandb_run_name = random_name
         entry(config, wandb_run_name, args.enable_wandb)
 
 
