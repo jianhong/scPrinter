@@ -58,17 +58,12 @@ pip install MOODS-python snapatac2 ema_pytorch modisco-lite
 git clone https://github.com/austintwang/finemo_gpu.git
 cd finemo_gpu
 pip install ./
-```
 
-if you can manage to install meme using other approach, feel free to do so.
+cd ../
+git clone https://github.com/jmschrei/tfmodisco-lite.git
+cd tfmodisco-lite
+pip install ./
 
-```angular2html
-wget https://meme-suite.org/meme/meme-software/5.5.6/meme-5.5.6.tar.gz
-tar zxf meme-5.5.6.tar.gz
-cd meme-5.5.6
-./configure --prefix=/home/rzhang/software/meme
-make
-make install
 ```
 
 Finally scprinter.

@@ -15,6 +15,8 @@ Some commonly used arguments in scprinter:
 - `save_group_names`: list[str] | str
     Some functions in scPrinter allow you to collapse or merge multiple groups into one group (specified by a list of `group_names`). In this case you can specify the `save_group_names` to name these new groups. If you don't specify it, it will use the `group_names` as the default.
     the relationship can be seens as: barcode - single cell; a list of barcode (`cell_grouping`) - pseudo-bulk (named by `group_names`); a list of pseudo-bulks (specified by `group_names`) - bigger pseudo-bulk (named by `save_group_names`)
+- `sample_names`: list[str] | str
+    The names of the samples or library. Only relevant when you have multiple fragments file. When provided, it will append the sample name to cell barcodes in each fragments file to avoid cell barcode collision. This is helpful for 10X scATAC-seq and multiome data where there can be multiple fragments files with the same cell barcodes.
 - `save_key`: str
     If you generate footprints / TF binding score for multiple region / groups, you can specify a key to save the results in the printer object or local path. `save_key` refers to the collection of these results
 - `save_path`: str
