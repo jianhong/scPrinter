@@ -2458,7 +2458,7 @@ def seq_denovo_seq2print(
     genome: Genome,
     gpus: list[int] | int,
     preset: Literal["footprint", "count"] = "footprint",
-    n_seqlets=1000000,
+    n_seqlets=100000,
     modisco_window=1000,
     leiden_resolution=1,
     leiden_solver="modularity",
