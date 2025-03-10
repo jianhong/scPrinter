@@ -757,7 +757,7 @@ class Motifs:
             columns=[m.name for m, select in zip(self.all_motifs, self.select) if select],
         )
         adata.varm["motif_match"] = res.to_numpy()
-        adata.uns["motif_name"] = res.columns
+        adata.uns["motif_name"] = list(res.columns)
 
     def collect_child_process(
         self, p_list, verbose, bar, count, motifs_length, name2id, maps, break_on_min_jobs
