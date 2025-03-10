@@ -52,8 +52,9 @@ def sample_bg_peaks(
         "chromvar" mode.
     n_jobs : int, optional
         Number of jobs to run in parallel for nearest neighbor calculation. Defaults to 1.
-    gc_bias : bool, optional
-        Whether to consider GC bias in sampling background peaks. Defaults to True.
+    bg_columns: list of str, optional
+        List of columns in adata.var to use for background sampling. Defaults to ["gc_content"].
+        If "gc_content" is in the list, but not in the adata.var already, it will compute GC bias using get_peak_bias function.
 
     Returns
     -------
@@ -61,7 +62,8 @@ def sample_bg_peaks(
         Array containing indices of sampled background peaks for each peak.
     """
     if "gc_content" in bg_columns:
-        get_peak_bias(adata, genome)
+        if "gc_bias" not in adata.var.columns:
+            get_peak_bias(adata, genome)
     assert method in ["nndescent", "chromvar"], "Method not supported"
     reads_per_peak = adata.X.sum(axis=0)
     assert np.min(reads_per_peak) > 0, "Some peaks have no reads"
@@ -202,7 +204,7 @@ def scipy_to_cupy_sparse(sparse_matrix):
     return cupy_sparse_matrix
 
 
-def compute_deviations(adata, chunk_size: int = 10000, device="cuda"):
+def compute_deviations(adata, chunk_size: int = 10000, device="cuda", tf_chunk_size: int = -1):
     """
     Computes the deviation of motif matches from the background for each cell.
 
@@ -239,61 +241,73 @@ def compute_deviations(adata, chunk_size: int = 10000, device="cuda"):
     expectation_obs = np.asarray(adata.X.sum(1), dtype=np.float32).reshape((adata.X.shape[0], 1))
 
     motif_match = adata.varm["motif_match"]
-    if sparse.isspmatrix(motif_match):
-        if device == "cuda":
-            motif_match = scipy_to_cupy_sparse(motif_match)
-        else:
-            motif_match = motif_match.tocsr()
-    else:
-        motif_match = backend.asarray(motif_match, dtype=backend.float32)
+    if tf_chunk_size < 0:
+        tf_chunk_size = motif_match.shape[1]
+    dev_all = []
+    for motif_match_start in tqdm(
+        list(range(0, motif_match.shape[1], tf_chunk_size)), desc="Processing TF chunks"
+    ):
+        motif_match_tp = motif_match[:, motif_match_start : motif_match_start + tf_chunk_size]
 
-    obs_dev = np.zeros((adata.n_obs, motif_match.shape[1]), dtype=np.float32)
-    n_bg_peaks = adata.varm["bg_peaks"].shape[1]
-    # bg_dev = np.zeros((n_bg_peaks, adata.n_obs, motif_match.shape[1]), dtype=np.float32)
-    mean_bg_dev = np.zeros_like(obs_dev)
-    std_bg_dev = np.zeros_like(obs_dev)
-
-    for start in tqdm(range(0, adata.n_obs, chunk_size), desc="Processing chunks"):
-        end = min(start + chunk_size, adata.n_obs)
-        temp_adata = adata[start:end].copy()
-        X_chunk = temp_adata.X
-        expectation_obs_chunk = backend.asarray(expectation_obs[start:end])
-        if sparse.isspmatrix(X_chunk):
+        if sparse.isspmatrix(motif_match_tp):
             if device == "cuda":
-                X_chunk = scipy_to_cupy_sparse(X_chunk)
+                motif_match_tp = scipy_to_cupy_sparse(motif_match_tp)
             else:
-                X_chunk = X_chunk.tocsr()
+                motif_match_tp = motif_match_tp.tocsr()
         else:
-            X_chunk = backend.array(X_chunk)
-        res = _compute_deviations(
-            motif_match,
-            X_chunk,
-            expectation_obs_chunk,
-            expectation_var,
-            device=device,
-        )
-        obs_dev[start:end, :] = res.get() if device == "cuda" else res
-        bg_dev_chunk = np.zeros((n_bg_peaks, end - start, motif_match.shape[1]), dtype=np.float32)
-        for i in trange(n_bg_peaks, desc="Processing background peaks"):
-            bg_peak_idx = backend.array(adata.varm["bg_peaks"][:, i]).flatten()
-            bg_motif_match = motif_match[bg_peak_idx, :]
+            motif_match_tp = backend.asarray(motif_match_tp, dtype=backend.float32)
+
+        obs_dev = np.zeros((adata.n_obs, motif_match_tp.shape[1]), dtype=np.float32)
+        n_bg_peaks = adata.varm["bg_peaks"].shape[1]
+        # bg_dev = np.zeros((n_bg_peaks, adata.n_obs, motif_match.shape[1]), dtype=np.float32)
+        mean_bg_dev = np.zeros_like(obs_dev)
+        std_bg_dev = np.zeros_like(obs_dev)
+
+        for start in tqdm(range(0, adata.n_obs, chunk_size), desc="Processing chunks"):
+            end = min(start + chunk_size, adata.n_obs)
+            temp_adata = adata[start:end].copy()
+            X_chunk = temp_adata.X
+            expectation_obs_chunk = backend.asarray(expectation_obs[start:end])
+            if sparse.isspmatrix(X_chunk):
+                if device == "cuda":
+                    X_chunk = scipy_to_cupy_sparse(X_chunk)
+                else:
+                    X_chunk = X_chunk.tocsr()
+            else:
+                X_chunk = backend.array(X_chunk)
             res = _compute_deviations(
-                bg_motif_match,
+                motif_match_tp,
                 X_chunk,
                 expectation_obs_chunk,
                 expectation_var,
                 device=device,
             )
-            bg_dev_chunk[i, :, :] = res.get() if device == "cuda" else res
-        mean_bg_dev[start:end, :] = np.mean(bg_dev_chunk, axis=0)
-        std_bg_dev[start:end, :] = np.std(bg_dev_chunk, axis=0)
-        del temp_adata, X_chunk
+            obs_dev[start:end, :] = res.get() if device == "cuda" else res
+            bg_dev_chunk = np.zeros(
+                (n_bg_peaks, end - start, motif_match_tp.shape[1]), dtype=np.float32
+            )
+            for i in trange(n_bg_peaks, desc="Processing background peaks"):
+                bg_peak_idx = backend.array(adata.varm["bg_peaks"][:, i]).flatten()
+                bg_motif_match = motif_match_tp[bg_peak_idx, :]
+                res = _compute_deviations(
+                    bg_motif_match,
+                    X_chunk,
+                    expectation_obs_chunk,
+                    expectation_var,
+                    device=device,
+                )
+                bg_dev_chunk[i, :, :] = res.get() if device == "cuda" else res
+            mean_bg_dev[start:end, :] = np.mean(bg_dev_chunk, axis=0)
+            std_bg_dev[start:end, :] = np.std(bg_dev_chunk, axis=0)
+            del temp_adata, X_chunk
 
-    # mean_bg_dev = np.mean(bg_dev, axis=0)
-    # std_bg_dev = np.std(bg_dev, axis=0)
-    dev = (obs_dev - mean_bg_dev) / std_bg_dev
-    dev = np.nan_to_num(dev, nan=0.0)
+        # mean_bg_dev = np.mean(bg_dev, axis=0)
+        # std_bg_dev = np.std(bg_dev, axis=0)
+        dev = (obs_dev - mean_bg_dev) / std_bg_dev
+        dev = np.nan_to_num(dev, nan=0.0)
+        dev_all.append(dev)
 
+    dev = np.concatenate(dev_all, axis=1) if len(dev_all) > 1 else dev_all[0]
     dev = AnnData(
         dev, dtype="float32", obs=adata.obs.copy()
     )  # Convert back to CPU for AnnData compatibility
@@ -378,14 +392,13 @@ def bag_deviations(
         set(tf1).union(set(tf2))
     ), "All TF names must be in the correlation matrix"
     cormat = cormat[(tf1.isin(TFnames)) & (tf2.isin(TFnames))]
-
     tf1 = cormat.iloc[:, 0]
     tf2 = cormat.iloc[:, 1]
-    factor = np.array(cormat.iloc[:, 2])
-    if not collapse_greater:
-        factor = factor * -1
-        cutoff = -1 * cutoff
 
+    if not collapse_greater:
+        cormat.iloc[:, 2] = cormat.iloc[:, 2] * -1
+        cutoff = -1 * cutoff
+    factor = np.array(cormat.iloc[:, 2])
     i = 1
     TFgroups = []
     while len(TFnames) != 0:
@@ -398,6 +411,9 @@ def bag_deviations(
         TFnames = [tf for tf in TFnames if tf not in tfhits]
         TFgroups.append(tfhits)
         cormat = cormat[tf1.isin(TFnames) & tf2.isin(TFnames)]
+        tf1 = cormat.iloc[:, 0]
+        tf2 = cormat.iloc[:, 1]
+        factor = np.array(cormat.iloc[:, 2])
         i += 1
 
     sentinalTFs = []
