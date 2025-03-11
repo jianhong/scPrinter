@@ -436,7 +436,7 @@ def permutation_test(
     n_iterations: int = 1000,
 ):
 
-    group = adata.obs[groupby].values
+    group = np.copy(adata.obs[groupby].values)
     fg = adata.X[group == group1]
     bg = adata.X[group == group2] if group2 is not None else adata.X[group != group1]
 

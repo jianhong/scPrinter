@@ -541,6 +541,48 @@ def report_motifs(
     return patterns_df
 
 
+def modisco_df_to_pdf(patterns_df, output_dir, summary_file_name):
+    patterns_df.to_html(
+        open(os.path.join(output_dir, f"{summary_file_name}.html"), "w"),
+        escape=False,
+        formatters=dict(
+            modisco_cwm_fwd=path_to_image_html,
+            modisco_cwm_rev=path_to_image_html,
+            delta_effects=path_to_image_html,
+            match0_logo=path_to_image_html,
+            match1_logo=path_to_image_html,
+            match2_logo=path_to_image_html,
+        ),
+        index=False,
+    )
+    from weasyprint import CSS, HTML
+
+    additional_css = """
+    	@page {
+    			size: 3200mm 1300mm;
+    			margin: 0in 0in 0in 0in;
+      }
+    	@media print {
+        /* Set font size for print. You can remove this if not needed. */
+        table {
+            font-size: 36pt;
+            /* Center the table itself within the page. */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Center-align text and images in each cell. */
+        th, td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        }
+    	"""
+    css = CSS(string=additional_css)
+    HTML(os.path.join(output_dir, f"{summary_file_name}.html")).write_pdf(
+        os.path.join(output_dir, f"{summary_file_name}.pdf"), stylesheets=[css]
+    )
+
+
 def report_composite_motif(
     modisco_h5pys: Path,
     output_dir: os.PathLike,
