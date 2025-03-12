@@ -1896,7 +1896,6 @@ def launch_seq2print(
     #     "lora_slice": "seq2print_lora_slice_train",
     # }
     command = [
-        "CUDA_VISIBLE_DEVICES=" + str(gpus),
         "seq2print_train",
         "--config",
         model_config_path,
@@ -1918,11 +1917,14 @@ def launch_seq2print(
             print(launch_template)
         else:
             print(verbose_template)
-    print(" ".join(command))
+    command_str = "CUDA_VISIBLE_DEVICES=" + str(gpus) + " " + " ".join(command)
+    print(command_str)
     if launch:
         try:
             print("subprocess run")
-            subprocess.run(command, check=True)  # Directly streams output to terminal
+            env = os.environ.copy()
+            env["CUDA_VISIBLE_DEVICES"] = str(gpus)
+            subprocess.run(command, env=env, check=True)  # Directly streams output to terminal
         except subprocess.CalledProcessError as e:
             print(f"Command failed with exit code {e.returncode}")
 
