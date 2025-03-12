@@ -1921,6 +1921,7 @@ def launch_seq2print(
     print(" ".join(command))
     if launch:
         try:
+            print("subprocess run")
             subprocess.run(command, check=True)  # Directly streams output to terminal
         except subprocess.CalledProcessError as e:
             print(f"Command failed with exit code {e.returncode}")
