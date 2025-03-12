@@ -9,8 +9,10 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_MAX_THREADS"] = "1"
 import copy
 import itertools
+import json
 import math
 import pickle
+import subprocess
 import warnings
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from functools import partial
@@ -1893,23 +1895,35 @@ def launch_seq2print(
     #     "lora": "seq2print_lora_train",
     #     "lora_slice": "seq2print_lora_slice_train",
     # }
-    entrance_script = "seq2print_train"
-    command_str = (
-        f"CUDA_VISIBLE_DEVICES={gpus} {entrance_script} --config {model_config_path} --temp_dir {temp_dir} "
-        f"--model_dir {model_dir} --data_dir {data_dir} --project {wandb_project}"
-    )
+    command = [
+        "CUDA_VISIBLE_DEVICES=" + str(gpus),
+        "seq2print_train",
+        "--config",
+        model_config_path,
+        "--temp_dir",
+        temp_dir,
+        "--model_dir",
+        model_dir,
+        "--data_dir",
+        data_dir,
+        "--project",
+        str(wandb_project),
+    ]
 
     if wandb_project is not None:
-        command_str += " --enable_wandb"
+        command.append("--enable_wandb")
 
     if verbose:
         if launch:
             print(launch_template)
         else:
             print(verbose_template)
-    print(command_str)
+    print(" ".join(command))
     if launch:
-        os.system(command_str)
+        try:
+            subprocess.run(command, check=True)  # Directly streams output to terminal
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with exit code {e.returncode}")
 
 
 def ohe_from_region(
@@ -2108,15 +2122,31 @@ def seq_attr_seq2print(
     gpus = " ".join(gpus)
 
     entrance_script = "seq2print_attr"
-    command = (
-        f"{entrance_script} --pt {model_path} --peaks {region_path} "
-        f"--method {method} --wrapper {wrapper} --nth_output {nth_output} "
-        f"--gpus {gpus} --genome {genome} --decay {decay} --save_key {save_key}"
-    )
+    command = [
+        entrance_script,
+        "--pt",
+        model_path,
+        "--peaks",
+        region_path,
+        "--method",
+        method,
+        "--wrapper",
+        wrapper,
+        "--nth_output",
+        str(nth_output),
+        "--gpus",
+        str(gpus),
+        "--genome",
+        genome,
+        "--decay",
+        str(decay),
+        "--save_key",
+        save_key,
+    ]
     if overwrite:
-        command += " --overwrite "
+        command.append("--overwrite")
     if numpy_mode:
-        command += " --write_numpy "
+        command.append("--write_numpy")
     if model_type == "lora":
         assert lora_config is not None, "lora_config must be provided when model_type is lora"
         if type(lora_config) is not dict:
@@ -2145,25 +2175,28 @@ def seq_attr_seq2print(
 
         print("group_names", group_names)
         print("save_group_names", save_group_names)
-        command += f" --models {lora_ids_str}"
-        command += f" --save_names {save_group_names}"
+        command.extend(["--models", lora_ids_str])
+        command.extend(["--save_names", save_group_names])
     if preset is not None:
-        command += f" --model_norm {preset}"
+        command.extend(["--model_norm", preset])
     if sample is not None:
-        command += f" --sample {sample}"
+        command.extend(["--sample", str(sample)])
     if not verbose:
-        command += " --silent "
+        command.append("--silent")
     if save_norm:
-        command += " --save_norm "
+        command.append("--save_norm")
 
     if verbose:
         if launch:
             print(launch_template)
         else:
             print(verbose_template)
-    print(command)
+    print(" ".join(command))
     if launch:
-        os.system(command)
+        try:
+            subprocess.run(command, check=True)  # Directly streams output to terminal
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with exit code {e.returncode}")
 
     if not save_norm:
         if model_type == "seq2print":
@@ -2397,32 +2430,52 @@ def seq_tfbs_seq2print(
     foot_pt = pretrained_seq_TFBS_model1
     save_name = ",".join([os.path.join(save_path, str(x)) for x in save_group_names])
     gpus = " ".join([str(x) for x in gpus])
-    command = (
-        f"seq2print_tfbs --count_pt {count_pt} --foot_pt {foot_pt} "
-        f"--seq_count {count} --seq_foot {foot} --genome {genome.name} "
-        f"--peaks {region_path} --save_name {save_name} --gpus {gpus}"
-    )
+
+    command = [
+        "seq2print_tfbs",
+        "--count_pt",
+        count_pt,
+        "--foot_pt",
+        foot_pt,
+        "--seq_count",
+        count,
+        "--seq_foot",
+        foot,
+        "--genome",
+        genome.name,
+        "--peaks",
+        region_path,
+        "--save_name",
+        save_name,
+        "--gpus",
+        gpus,
+    ]
     if group_names[0][0] is not None:
         lora_ids_str = ",".join(save_group_names)
-        command += f" --lora_ids {lora_ids_str}"
+        command.extend(["--lora_ids", lora_ids_str])
 
     if return_adata:
-        command += " --write_numpy "
+        command.append("--write_numpy")
+
     if save_key is not None:
         save_key = os.path.join(save_path, save_key)
-        command += f" --collection_name {save_key}"
+        command.extend("--collection_name", save_key)
+
     if read_numpy:
-        command += " --read_numpy "
+        command.append("--read_numpy")
     if post_normalize:
-        command += " --post_normalize "
+        command.append("--post_normalize")
     if verbose:
         if launch:
             print(launch_template)
         else:
             print(verbose_template)
-    print(command)
+    print(" ".join(command))
     if launch:
-        os.system(command)
+        try:
+            subprocess.run(command, check=True)  # Directly streams output to terminal
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with exit code {e.returncode}")
 
     if return_adata:
         regions = regionparser(region_path, printer=None, width=800)
@@ -2632,19 +2685,48 @@ def seq_denovo_callhits(
         seq_attrs.append(seq_attr_path)
     seq_attr = seq_attrs[0] if len(seq_attrs) == 1 else modisco_output + ".avg.hypo.npz"
     if (not os.path.exists(f"{save_path}/hits.tsv")) | overwrite:
-        command1 = f"finemo extract-regions-modisco-fmt -s {ohe_path} -a {seq_attr} -o {save_path}.finemo.npz"
-        command2 = f"finemo call-hits -M pp -r {save_path}.finemo.npz -m {modisco_output} -o {save_path} -d {device}"
+        command1 = [
+            "finemo",
+            "extract-regions-modisco-fmt",
+            "-s",
+            ohe_path,
+            "-a",
+            seq_attr,
+            "-o",
+            f"{save_path}.finemo.npz",
+        ]
+        command2 = [
+            "finemo",
+            "call-hits",
+            "-M",
+            "pp",
+            "-r",
+            f"{save_path}.finemo.npz",
+            "-m",
+            modisco_output,
+            "-o",
+            save_path,
+            "-d",
+            device,
+        ]
+
         if verbose:
             if launch:
                 print(launch_template)
             else:
                 print(verbose_template)
-        print(command1)
+        print(" ".join(command1))
         if launch:
-            os.system(command1)
-        print(command2)
+            try:
+                subprocess.run(command1, check=True)  # Directly streams output to terminal
+            except subprocess.CalledProcessError as e:
+                print(f"Command failed with exit code {e.returncode}")
+        print(" ".join(command2))
         if launch:
-            os.system(command2)
+            try:
+                subprocess.run(command2, check=True)  # Directly streams output to terminal
+            except subprocess.CalledProcessError as e:
+                print(f"Command failed with exit code {e.returncode}")
     if return_hits:
         # chr     start   end     start_untrimmed end_untrimmed   motif_name      hit_coefficient hit_correlation hit_importance  strand
         #   peak_name       peak_id
@@ -2688,15 +2770,36 @@ def modisco_helper(
         hypo = hypo_path
     else:
         hypo = hypo[0]
-    command = f"seq2print_modisco motifs -s {ohe} -a {hypo} -n {n} -o {output} -w {w} -r {resolution} --solver {solver}"
+
+    command = [
+        "seq2print_modisco",
+        "motifs",
+        "-s",
+        ohe,
+        "-a",
+        hypo,
+        "-n",
+        str(n),
+        "-o",
+        output,
+        "-w",
+        str(w),
+        "-r",
+        str(resolution),
+        "--solver",
+        solver,
+    ]
     if verbose:
         if launch:
             print(launch_template)
         else:
             print(verbose_template)
-    print(command)
+    print(" ".join(command))
     if launch:
-        os.system(command)
+        try:
+            subprocess.run(command, check=True)  # Directly streams output to terminal
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with exit code {e.returncode}")
 
 
 def delta_effects_seq2print(
