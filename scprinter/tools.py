@@ -1921,7 +1921,6 @@ def launch_seq2print(
     print(command_str)
     if launch:
         try:
-            print("subprocess run")
             env = os.environ.copy()
             env["CUDA_VISIBLE_DEVICES"] = str(gpus)
             subprocess.run(command, env=env, check=True)  # Directly streams output to terminal
@@ -3040,3 +3039,35 @@ def modisco_report(
         trim_threshold,
         selected_patterns,
     )
+
+
+def seq2print_register_norm_factor(model_path, count_hypo, footprint_hypo):
+    """
+    Manually register the normalization factor for the seq2PRINT model, this is useful when your training process failed at the last part but can still manually rerun the normalization factor process.
+
+    Parameters
+    ----------
+    model_path
+    count_hypo
+    footprint_hypo
+
+    Returns
+    -------
+
+    """
+    acc_model = torch.load(model_path, map_location="cpu", weights_only=False)
+    if type(count_hypo) in [tuple, list]:
+        count_hypo = count_hypo
+    else:
+        count_hypo = np.load(count_hypo)
+    if type(footprint_hypo) in [tuple, list]:
+        foot_hypo = footprint_hypo
+    else:
+        foot_hypo = np.load(footprint_hypo)
+    low, median, high = count_hypo
+    print("count head normalization factor", low, median, high)
+    acc_model.count_norm = [low, median, high]
+    low, median, high = foot_hypo
+    print("footprint head normalization factor", low, median, high)
+    acc_model.foot_norm = [low, median, high]
+    torch.save(acc_model, model_path)
