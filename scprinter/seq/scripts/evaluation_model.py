@@ -2,6 +2,7 @@ import argparse
 import gc
 import subprocess
 from concurrent.futures import ProcessPoolExecutor
+from copy import deepcopy
 
 import h5py
 
@@ -197,6 +198,7 @@ def main(
 
     signal_window = 1000
     print("signal_window", signal_window, "dna_len", dna_len)
+    genome_str = deepcopy(genome)
     if genome == "hg38":
         genome = scp.genome.hg38
     elif genome == "mm10":
@@ -265,7 +267,7 @@ def main(
                     "--pt",
                     pt,
                     "--genome",
-                    genome,
+                    genome_str,
                     "--peaks",
                     peaks,
                     "--models",
@@ -317,7 +319,7 @@ def main(
                         "--pt",
                         pt,
                         "--genome",
-                        genome,
+                        genome_str,
                         "--peaks",
                         peaks,
                         "--start",
