@@ -2121,6 +2121,7 @@ def seq_attr_seq2print(
     if type(gpus) is not list:
         gpus = [gpus]
     gpus = [str(x) for x in gpus]
+    gpu_num = len(gpus)
     gpus = " ".join(gpus)
 
     entrance_script = "seq2print_attr"
@@ -2195,10 +2196,36 @@ def seq_attr_seq2print(
             print(verbose_template)
     print(" ".join(command))
     if launch:
-        try:
-            subprocess.run(command, check=True)  # Directly streams output to terminal
-        except subprocess.CalledProcessError as e:
-            print(f"Command failed with exit code {e.returncode}")
+        if gpu_num == 1:
+            from seq.scripts.evaluation_model import main as evaluation_model
+
+            evaluation_model(
+                pt=model_path,
+                models=lora_ids_str if model_type == "lora" else None,
+                genome=genome,
+                peaks=region_path,
+                start=0,
+                end=-1,
+                method=method,
+                wrapper=wrapper,
+                nth_output=nth_output,
+                write_numpy=numpy_mode,
+                gpus=gpus,
+                overwrite=overwrite,
+                decay=decay,
+                extra="",
+                model_norm=preset,
+                sample=sample,
+                silent=not verbose,
+                save_norm=save_norm,
+                save_key=save_key,
+                save_names=save_group_names if model_type == "lora" else None,
+            )
+        else:
+            try:
+                subprocess.run(command, check=True)  # Directly streams output to terminal
+            except subprocess.CalledProcessError as e:
+                print(f"Command failed with exit code {e.returncode}")
 
     if not save_norm:
         if model_type == "seq2print":
@@ -2461,7 +2488,7 @@ def seq_tfbs_seq2print(
 
     if save_key is not None:
         save_key = os.path.join(save_path, save_key)
-        command.extend("--collection_name", save_key)
+        command.extend(["--collection_name", save_key])
 
     if read_numpy:
         command.append("--read_numpy")

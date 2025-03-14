@@ -129,42 +129,61 @@ def save_attrs(
     print(filename_template.replace("{type}", "hypo") + "npz")
 
 
-def main():
-    torch.set_num_threads(4)
+def main(
+    pt,
+    models,
+    genome,
+    peaks,
+    start,
+    end,
+    method,
+    wrapper,
+    nth_output,
+    write_numpy,
+    gpus,
+    overwrite,
+    decay,
+    extra,
+    model_norm,
+    sample,
+    silent,
+    save_norm,
+    save_key,
+    save_names,
+):
 
-    args = parser.parse_args()
-    verbose = not args.silent
-    write_bigwig = not args.write_numpy
-    if args.models is not None:
-        ids = args.models
+    torch.set_num_threads(4)
+    verbose = not silent
+    write_bigwig = not write_numpy
+    if models is not None:
+        ids = models
         ids = ids.split(",")
         ids = [i.split("-") for i in ids]
         print(ids[:5], ids[-5:])
         ids = [[int(j) for j in i] for i in ids]
-        id_strs = args.save_names.split(",")
+        id_strs = save_names.split(",")
         assert len(id_strs) == len(ids)
     else:
         ids = [[None]]
         id_strs = [""]
 
     print(ids)
-    gpus = args.gpus
-    wrapper = args.wrapper
-    method = args.method
-    nth_output = args.nth_output
-    norm_key = args.model_norm
+    gpus = gpus
+    wrapper = wrapper
+    method = method
+    nth_output = nth_output
+    norm_key = model_norm
 
     print(gpus)
     if len(gpus) == 1:
         torch.cuda.set_device(int(gpus[0]))
-    peaks = args.peaks
     summits = pd.read_table(peaks, sep="\t", header=None)
     summits = summits.drop_duplicates([0, 1, 2])  # drop exact same loci
     summits["summits"] = (summits[1] + summits[2]) // 2
     summits = summits[[0, "summits"]]
     summits["summits"] = np.array(summits["summits"], dtype=int)
 
-    acc_model = torch.load(args.pt, map_location="cpu", weights_only=False).cuda()
+    acc_model = torch.load(pt, map_location="cpu", weights_only=False).cuda()
 
     # If there's coverage, set it to be the same across all models (so there won't be a coverage bias)
     if acc_model.coverages is not None:
@@ -178,7 +197,6 @@ def main():
 
     signal_window = 1000
     print("signal_window", signal_window, "dna_len", dna_len)
-    genome = args.genome
     if genome == "hg38":
         genome = scp.genome.hg38
     elif genome == "mm10":
@@ -204,8 +222,6 @@ def main():
         verbose=verbose,
     )
     summits = dataset.summits
-    start = args.start
-    end = args.end
     if end == -1:
         end = summits.shape[0]
     summits = summits[start:end]
@@ -214,14 +230,12 @@ def main():
     ).T
     acc_model.upsample = False
 
-    save_dir = f"{args.pt}_{args.save_key}" + (
-        f"_sample{args.sample}" if args.sample is not None else ""
-    )
+    save_dir = f"{pt}_{save_key}" + (f"_sample{sample}" if sample is not None else "")
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     vs_collection = []
-    extra = args.extra + f"_{nth_output}_"
+    extra = extra + f"_{nth_output}_"
 
     if len(gpus) > 1:
         n_split = len(gpus)
@@ -233,9 +247,9 @@ def main():
                 if os.path.exists(
                     os.path.join(
                         save_dir,
-                        f"model_{id_str}.hypo.{wrapper}.{method}{extra}.{args.decay}.npz",
+                        f"model_{id_str}.hypo.{wrapper}.{method}{extra}.{decay}.npz",
                     )
-                ) and (not args.overwrite):
+                ) and (not overwrite):
                     print("exists")
                     continue
                 else:
@@ -249,11 +263,11 @@ def main():
                 [
                     "seq2print_attr",
                     "--pt",
-                    args.pt,
+                    pt,
                     "--genome",
-                    args.genome,
+                    genome,
                     "--peaks",
-                    args.peaks,
+                    peaks,
                     "--models",
                     ",".join(["-".join([str(j) for j in i]) for i in id_batch]),
                     "--method",
@@ -265,16 +279,16 @@ def main():
                     "--gpus",
                     str(gpu),
                     "--decay",
-                    str(args.decay),
+                    str(decay),
                     "--save_key",
-                    args.save_key,
+                    save_key,
                     "--save_names",
                     ",".join(list(ids_str_batch)),
                 ]
-                + (["--overwrite"] if args.overwrite else [])
-                + (["--write_numpy"] if args.write_numpy else [])
-                + (["--model_norm", args.model_norm] if args.model_norm is not None else [])
-                + (["--silent"] if args.silent else [])
+                + (["--overwrite"] if overwrite else [])
+                + (["--write_numpy"] if write_numpy else [])
+                + (["--model_norm", model_norm] if model_norm is not None else [])
+                + (["--silent"] if silent else [])
                 for i, (id_batch, ids_str_batch, gpu) in enumerate(
                     zip(ids_batch, ids_strs_batch, gpus)
                 )
@@ -288,9 +302,9 @@ def main():
             if os.path.exists(
                 os.path.join(
                     save_dir,
-                    f"hypo.{wrapper}.{method}{extra}.{args.decay}.npz",
+                    f"hypo.{wrapper}.{method}{extra}.{decay}.npz",
                 )
-            ) and (not args.overwrite):
+            ) and (not overwrite):
                 print("exists")
             else:
                 bs = int(math.ceil(len(summits) / n_split))
@@ -301,11 +315,11 @@ def main():
                     [
                         "seq2print_attr",
                         "--pt",
-                        args.pt,
+                        pt,
                         "--genome",
-                        args.genome,
+                        genome,
                         "--peaks",
-                        args.peaks,
+                        peaks,
                         "--start",
                         str(start_),
                         "--end",
@@ -320,13 +334,13 @@ def main():
                         "--gpus",
                         str(gpu),
                         "--decay",
-                        str(args.decay),
+                        str(decay),
                         "--save_key",
-                        args.save_key,
+                        save_key,
                     ]
-                    + (["--overwrite"] if args.overwrite else [])
-                    + (["--model_norm", args.model_norm] if args.model_norm is not None else [])
-                    + (["--silent"] if args.silent else [])
+                    + (["--overwrite"] if overwrite else [])
+                    + (["--model_norm", model_norm] if model_norm is not None else [])
+                    + (["--silent"] if silent else [])
                     for i, (start_, end_, gpu) in enumerate(zip(start_batches, end_batches, gpus))
                 ]
                 pool = ProcessPoolExecutor(max_workers=len(gpus))
@@ -342,7 +356,7 @@ def main():
                         np.load(
                             os.path.join(
                                 save_dir,
-                                f"attr.{wrapper}.{method}{extra}.{args.decay}.{start_}-{end_}.npz",
+                                f"attr.{wrapper}.{method}{extra}.{decay}.{start_}-{end_}.npz",
                             )
                         )["arr_0"]
                     )
@@ -350,7 +364,7 @@ def main():
                         np.load(
                             os.path.join(
                                 save_dir,
-                                f"hypo.{wrapper}.{method}{extra}.{args.decay}.{start_}-{end_}.npz",
+                                f"hypo.{wrapper}.{method}{extra}.{decay}.{start_}-{end_}.npz",
                             )
                         )["arr_0"]
                     )
@@ -371,7 +385,7 @@ def main():
                     start=0,
                     end=regions.shape[0],
                     partition_by_region=False,  # we collected them all
-                    decay=args.decay,
+                    decay=decay,
                     regions=regions,
                     verbose=verbose,
                     write_bigwig=write_bigwig,
@@ -383,13 +397,13 @@ def main():
                     os.remove(
                         os.path.join(
                             save_dir,
-                            f"attr.{wrapper}.{method}{extra}.{args.decay}.{start_}-{end_}.npz",
+                            f"attr.{wrapper}.{method}{extra}.{decay}.{start_}-{end_}.npz",
                         )
                     )
                     os.remove(
                         os.path.join(
                             save_dir,
-                            f"hypo.{wrapper}.{method}{extra}.{args.decay}.{start_}-{end_}.npz",
+                            f"hypo.{wrapper}.{method}{extra}.{decay}.{start_}-{end_}.npz",
                         )
                     )
 
@@ -406,9 +420,9 @@ def main():
                 os.path.join(
                     save_dir,
                     (f"model_{id_str}." if id[0] is not None else "")
-                    + f"hypo.{wrapper}.{method}{extra}.{args.decay}.npz",
+                    + f"hypo.{wrapper}.{method}{extra}.{decay}.npz",
                 )
-            ) and (not args.overwrite):
+            ) and (not overwrite):
                 print("exists")
                 continue
 
@@ -435,7 +449,6 @@ def main():
                 model = CountWrapper(model_0)
             model = model.cuda()
 
-            sample = args.sample
             # if sample, randomly select some regions
             if sample is not None:
                 random_ids = np.random.permutation(np.arange(start, min(end, regions.shape[0])))[
@@ -462,7 +475,7 @@ def main():
                 dataset.cache_seqs[random_ids].detach().cpu().numpy(),
             )
 
-            if args.save_norm:
+            if save_norm:
                 vs = projected_attributions[..., 520:-520]
                 vs_collection.append(
                     vs
@@ -483,7 +496,7 @@ def main():
                 partition_by_region=(
                     (start != 0) or (end != dataset.summits.shape[0])
                 ),  # If it's not all regions, it's partitioned
-                decay=args.decay,
+                decay=decay,
                 regions=regions[random_ids],  # make sure it matches the random_ids
                 verbose=False if len(ids) > 1 else verbose,
                 write_bigwig=write_bigwig,
@@ -491,7 +504,7 @@ def main():
                 save_dir=save_dir,
             )
 
-        if args.save_norm:
+        if save_norm:
             vs_collection = np.concatenate(vs_collection, axis=0)
             print("sampled signals for normalization", vs_collection.shape)
             vs = vs_collection.reshape((-1))
@@ -503,7 +516,7 @@ def main():
             )
             print("normalizing", low, median, high)
             np.save(
-                os.path.join(save_dir, f"norm.{wrapper}.{method}{extra}.{args.decay}.npy"),
+                os.path.join(save_dir, f"norm.{wrapper}.{method}{extra}.{decay}.npy"),
                 np.array([low, median, high]),
             )
             gc.collect()
@@ -514,4 +527,26 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parser.parse_args()
+    main(
+        args.pt,
+        args.models,
+        args.genome,
+        args.peaks,
+        args.start,
+        args.end,
+        args.method,
+        args.wrapper,
+        args.nth_output,
+        args.write_numpy,
+        args.gpus,
+        args.overwrite,
+        args.decay,
+        args.extra,
+        args.model_norm,
+        args.sample,
+        args.silent,
+        args.save_norm,
+        args.save_key,
+        args.save_names,
+    )
