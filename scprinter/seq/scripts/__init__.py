@@ -1,1 +1,1 @@
-from evaluation_model import main
+from .evaluation_model import main
