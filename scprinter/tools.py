@@ -2122,30 +2122,33 @@ def seq_attr_seq2print(
         gpus = [gpus]
     gpus = [str(x) for x in gpus]
     gpu_num = len(gpus)
-    gpus = " ".join(gpus)
 
     entrance_script = "seq2print_attr"
-    command = [
-        entrance_script,
-        "--pt",
-        model_path,
-        "--peaks",
-        region_path,
-        "--method",
-        method,
-        "--wrapper",
-        wrapper,
-        "--nth_output",
-        str(nth_output),
-        "--gpus",
-        str(gpus),
-        "--genome",
-        genome,
-        "--decay",
-        str(decay),
-        "--save_key",
-        save_key,
-    ]
+    command = (
+        [
+            entrance_script,
+            "--pt",
+            model_path,
+            "--peaks",
+            region_path,
+            "--method",
+            method,
+            "--wrapper",
+            wrapper,
+            "--nth_output",
+            str(nth_output),
+            "--gpus",
+        ]
+        + gpus
+        + [
+            "--genome",
+            genome,
+            "--decay",
+            str(decay),
+            "--save_key",
+            save_key,
+        ]
+    )
     if overwrite:
         command.append("--overwrite")
     if numpy_mode:
@@ -2458,7 +2461,7 @@ def seq_tfbs_seq2print(
     count_pt = pretrained_seq_TFBS_model0
     foot_pt = pretrained_seq_TFBS_model1
     save_name = ",".join([os.path.join(save_path, str(x)) for x in save_group_names])
-    gpus = " ".join([str(x) for x in gpus])
+    gpus = [str(x) for x in gpus]
 
     command = [
         "seq2print_tfbs",
@@ -2477,8 +2480,7 @@ def seq_tfbs_seq2print(
         "--save_name",
         save_name,
         "--gpus",
-        gpus,
-    ]
+    ] + gpus
     if group_names[0][0] is not None:
         lora_ids_str = ",".join(save_group_names)
         command.extend(["--lora_ids", lora_ids_str])
