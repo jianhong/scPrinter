@@ -2197,7 +2197,7 @@ def seq_attr_seq2print(
     print(" ".join(command))
     if launch:
         if gpu_num == 1:
-            from seq.scripts.evaluation_model import main as evaluation_model
+            from .seq.scripts.evaluation_model import main as evaluation_model
 
             evaluation_model(
                 pt=model_path,
