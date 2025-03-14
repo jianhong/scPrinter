@@ -526,7 +526,7 @@ def main(
     torch.cuda.empty_cache()
 
 
-if __name__ == "__main__":
+def entrance():
     args = parser.parse_args()
     main(
         args.pt,
@@ -550,3 +550,7 @@ if __name__ == "__main__":
         args.save_key,
         args.save_names,
     )
+
+
+if __name__ == "__main__":
+    entrance()
