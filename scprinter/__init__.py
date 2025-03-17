@@ -1,5 +1,14 @@
-__version__ = "1.0.0a"
 import sys
+
+try:
+    from importlib.metadata import PackageNotFoundError, version
+except ImportError:  # For Python <3.8 compatibility
+    from importlib_metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("scprinter")  # Get the version from the installed package
+except PackageNotFoundError:
+    __version__ = "0.0.0"  # Default when running directly from source without install
 
 from . import chromvar, datasets, dorc, genome, motifs, peak
 from . import plotting as pl

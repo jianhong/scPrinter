@@ -6,20 +6,33 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Upload Python Package
+nname: Upload Python Package
 
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+      - "v*" # Trigger on version tags, e.g., v1.0.0
 
 jobs:
-  deploy:
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      # build python package and deploy to pypi
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "🚀 Automated release for version ${{ github.ref_name }}."
+          draft: false
+          prerelease: false
+
+  deploy:
+    needs: release # Ensures package is released before uploading to PyPI
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v3
