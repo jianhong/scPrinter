@@ -6,6 +6,8 @@ from copy import deepcopy
 
 import h5py
 
+import pickle
+
 import scprinter as scp
 from scprinter.seq.dataloader import *
 from scprinter.seq.interpretation.attribution_wrapper import *
@@ -204,7 +206,10 @@ def main(
     elif genome == "mm10":
         genome = scp.genome.mm10
     else:
-        raise ValueError("genome not supported")
+        genome_filename = os.path.join(data_dir, genome+'.pkl') 
+        with open(genome_filename, 'rb') as file:
+            genome = pickle.load(file)
+            
     bias = str(genome.fetch_bias_bw())
     signals = [bias, bias]
 
