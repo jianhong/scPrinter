@@ -206,6 +206,8 @@ def main(
     elif genome == "mm10":
         genome = scp.genome.mm10
     else:
+        data_dir = os.path.dirname(peaks)
+        print(data_dir)
         genome_filename = os.path.join(data_dir, genome+'.pkl') 
         with open(genome_filename, 'rb') as file:
             genome = pickle.load(file)
