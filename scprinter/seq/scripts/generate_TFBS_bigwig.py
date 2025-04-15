@@ -10,6 +10,7 @@ from scprinter.seq.dataloader import *
 from scprinter.seq.interpretation.attributions import *
 from scprinter.seq.Models import *
 
+import os.path
 
 @torch.no_grad()
 def forward_pass_model(feats, model):
@@ -177,7 +178,10 @@ def main():
     elif genome == "mm10":
         genome = scp.genome.mm10
     else:
-        raise ValueError("genome not supported")
+        genome_filename = os.path.join(os.path.dirname(peaks), genome+'.pkl') 
+        with open(genome_filename, 'rb') as file:
+            genome = pickle.load(file)
+    
     summits = summits[summits[0].isin(genome.chrom_sizes)]
 
     # Four cases: with or without lora x read from numpy or bigwig
