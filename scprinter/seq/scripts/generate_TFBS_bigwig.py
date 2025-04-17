@@ -4,6 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 import torch
+import pickle
 
 import scprinter as scp
 from scprinter.seq.dataloader import *
