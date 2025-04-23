@@ -41,7 +41,7 @@ def bigwig_reader(bws, summits, signal_window, batch_size, post_normalize):
             feat = np.nanmean(
                 [
                     np.nan_to_num(
-                        j.values(chrom, summit - signal_window, summit + signal_window, numpy=True)
+                        j.values(chrom, 0 if summit - signal_window < 0 else summit - signal_window, summit + signal_window if summit + signal_window < j.chroms(chrom) else j.chroms(chrom), numpy=True)
                     )
                     for j in bw
                 ],
