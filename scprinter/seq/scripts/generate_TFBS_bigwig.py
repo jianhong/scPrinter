@@ -28,7 +28,7 @@ def forward_pass_model(feats, model):
     return pred
 
 
-def bigwig_reader(bws, summits, signal_window, batch_size, post_normalize):
+def bigwig_reader(bws, summits, signal_window, batch_size, post_normalize, genome):
     # bws are list of lists:
     feats = []
     bar = trange(len(bws) * len(summits))
@@ -38,10 +38,14 @@ def bigwig_reader(bws, summits, signal_window, batch_size, post_normalize):
         for i in range(len(summits)):
             bar.update(1)
             chrom, summit = summits.iloc[i]
+            if summit - signal_window < 0:
+               summit = signal_window
+            if summit + signal_window >= genome.chrom_sizes[chrom]:
+               summit = genome.chrom_sizes[chrom] - signal_window
             feat = np.nanmean(
                 [
                     np.nan_to_num(
-                        j.values(chrom, 0 if summit - signal_window < 0 else summit - signal_window, summit + signal_window if summit + signal_window < j.chroms(chrom) else j.chroms(chrom), numpy=True)
+                        j.values(chrom, summit - signal_window, summit + signal_window, numpy=True)
                     )
                     for j in bw
                 ],
@@ -72,7 +76,7 @@ def bigwig_reader(bws, summits, signal_window, batch_size, post_normalize):
                 feats = []
 
 
-def numpy_reader(paths, summits, signal_window, batch_size, post_normalize):
+def numpy_reader(paths, summits, signal_window, batch_size, post_normalize, genome):
     feats = []
     lengths = 0
 
@@ -272,6 +276,7 @@ def main():
                     signal_window,
                     512,
                     args.post_normalize,
+                    genome
                 )
             )
             models.append(count_model)
@@ -286,6 +291,7 @@ def main():
                     signal_window,
                     512,
                     args.post_normalize,
+                    genome
                 )
             )
             models.append(foot_model)
